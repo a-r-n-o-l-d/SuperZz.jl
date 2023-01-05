@@ -1,0 +1,13 @@
+name = "SuperZz"
+uuid = "48dac205-4720-4ef1-b4ed-8aada37c5633"
+authors = ["Arnold"]
+version = "0.1.0"
+
+[compat]
+julia = "1.8"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
