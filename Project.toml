@@ -3,6 +3,11 @@ uuid = "48dac205-4720-4ef1-b4ed-8aada37c5633"
 authors = ["Arnold"]
 version = "0.1.0"
 
+[deps]
+ImageIO = "82e4d734-157c-48bb-816b-45c225c6df19"
+Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
+Stipple = "4acbeb90-81a0-11ea-1966-bdaff8155998"
+
 [compat]
 julia = "1.8"
 
