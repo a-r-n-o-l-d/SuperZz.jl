@@ -4,9 +4,14 @@ authors = ["Arnold"]
 version = "0.1.0"
 
 [deps]
+FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+Genie = "c43c736e-a2d1-11e8-161f-af95117fbd1e"
+GenieAutoReload = "c6228e60-a24f-11e9-1776-c313472ebacc"
 ImageIO = "82e4d734-157c-48bb-816b-45c225c6df19"
 Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 Stipple = "4acbeb90-81a0-11ea-1966-bdaff8155998"
+StippleUI = "a3c5d34a-b254-4859-a8fa-b86abb7e84a3"
 
 [compat]
 julia = "1.8"
