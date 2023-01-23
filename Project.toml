@@ -1,6 +1,6 @@
 name = "SuperZz"
 uuid = "48dac205-4720-4ef1-b4ed-8aada37c5633"
-authors = ["Arnold"]
+authors = ["Arnold","Benjamin"]
 version = "0.1.0"
 
 [deps]

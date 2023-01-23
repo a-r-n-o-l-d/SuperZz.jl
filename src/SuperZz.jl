@@ -2,15 +2,24 @@ module SuperZz
 using Genie, Genie.Renderer.Html # some app deps
 using GenieAutoReload
 const mydiv = Genie.Renderer.Html.div
-using Stipple, StippleUI, Stipple.ReactiveTools
+using Stipple, StippleUI
 using Images, FileIO
-
+import UUIDs
 import Genie.Renderer.Html: HTMLString, normal_element, register_normal_element
 
+include("custom_log.jl")
+include("html_param.jl")
+include("pipeline.jl")
 
 register_normal_element("q__header",context= @__MODULE__ )
 
-include("model.jl")
+#register_normal_element("template",context= @__MODULE__ )
+
+
+
+
+
+
 
 # Write your package code here.
 
@@ -25,146 +34,261 @@ include("model.jl")
 #         push!(plugins, plugin)
 #     end
 # end
-const CSS = style("""
-     .menubackgroud
-     {
-        background-color: #74992e;
-     
-     }
-     """
-     )
 
 
 
 const IMG_PATH = "/dev/shm/currentZz.png"
+const UPLOAD_PATH = "/dev/shm/"
 
+css() = style("""
+
+.active-link
+{
+  color: white
+  background: #F2C037
+}
+
+
+""")
+  
+
+
+# loaded image
 Stipple.@kwdef mutable struct ZzImage
 
-  image = NaN
-  path  = ""
+  img_id::String  = ""
+  image_path::String = ""
+
+  # TODO 
 
 end
 
 
-function teset_image()
+function demo_image()
   @info "load test image"
   path = "/home/bgirard/Téléchargements/P1100119-2.jpg"
-  img = load(path)
-  save(IMG_PATH,img)
-  
-end
-teset_image()
-
-
-current_image = ZzImage()
-
-function plugin_dict()
-
-
-  return Dict("cropper"=>(Input,Param,Output))
-end
-
-function plugin_dict_pram()
-
-  return Dict(:cropper=>Param)
+  path2 = "/home/bgirard/Téléchargements/mitosis.tif"
+  #img = load(path)
+  #save(IMG_PATH,img)
+  Dict("SampleZZ"=>ZzImage(
+    image_path=path,
+    img_id="SampleZZ",
+  ),
+  "ComplexSampleZZ"=>ZzImage(
+    image_path=path2,
+    img_id="ComplexSampleZZ",
+  )
+  )
 end
 
+function demo_image_viewer()
 
-function PluginStructGenerator()  
-    
-  fields = [ ]
-  for (key, value) in plugin_dict_pram() 
-
-    fields_sub_type = []
-    for (field_name,field_type) in zip(fieldnames(value),fieldtypes(value))
-      push!(fields_sub_type,
-      :(@mixin $(Symbol(string(field_name)*"_"))::$(field_type))
-      )
-    end
-
-  eval(quote
-    Stipple.@kwdef struct $(Symbol(string(value)*"Model"))
-      $(fields_sub_type...) 
-        end
-    end)
-    @info eval(:($(Symbol(string(value)*"Model"))))
-    push!(fields,
-    :(@mixin $(Symbol(string(key)*"_"))::$(Symbol(string(value)*"Model")))
-    )
-  end
-
-  eval(quote
-      Stipple.@kwdef struct Plugins
-        $(fields...) 
-          end
-   end)
+  [["SampleZZ"],[]]
 end
 
-PluginStructGenerator()
+
+PipelineStructGenerator()
 
 @vars Model begin
   
-    update_image::R{String} = "/currentimage"
     leftDrawerOpen::R{Bool} = true
 
-    @mixin Plugins
+    image_viewer::R{Vector{Vector{String}}} = demo_image_viewer()
+
+    list_image::R{Dict{String,ZzImage}} = demo_image()
+
+    splitter::R{Int} = 100
+    tabs_model::R{Vector{String}} = ["SampleZZ",""]
+
+
+    selected_image::R{String} = ""
+
+    debug::R{String} = ""
+
+    @mixin PipelineFlat
 end
 
 
 
 
-function html_param_items(par::Roi,symbol_plugin,field_name)
 
-    p("Tool for ROI")
+include("html_param.jl")
+
+
+
+function html_param_node(user_model,pipeline,node)
+  process=node.process
+  @info "generate html for $process"
+  paramtype = process.Param
+  list = []
+
+  for (field_name,field_type) in zip(fieldnames(paramtype),fieldtypes(paramtype))
+       @info field_name
+       if startswith(string(field_name),"channel") || startswith(string(field_name),"_") || startswith(string(field_name),"isready")  || startswith(string(field_name),"isprocessing")
+         continue
+       end
+       push!(list,html_param_items(user_model,field_type(),pipeline.name*"_"*process.name,field_name))
+  end
+
+  on(getfield(user_model,Symbol(string(pipeline.name)*"_"*process.name*"_execute"))) do _
+    @info "execute is call"
+    execute_pipeline(user_model,pipeline,node)
+  end
+
+  return q__card(class="q-pa-md", [p("Param for Process : "*string(process.name)),mydiv(list),
+
+    StippleUI.btn("Execute ",@click(string(pipeline.name)*"_"*process.name*"_execute = !"*string(pipeline.name)*"_"*process.name*"_execute"))
+  
+  ])
 end
 
-function html_param_items(par::Slider,symbol_plugin,field_name)
 
-    on(getfield(model,Symbol(string(symbol_plugin)*"_"*string(field_name)*"_v"))) do _
-          @info "model param is update"
-          @info  model.cropper_theata_v
-    end
-    on(par.v) do _
-      @info "model param2 is update"
-      @info  par
-    end
-    return StippleUI.slider(range(0,stop=10,step=1),Symbol(string(symbol_plugin)*"_"*string(field_name)*"_v"))
+function pipeline_render(user_model,pipeline)
+q__card([
+  "PIPELINE : "*pipeline.name,
+  mydiv(class="q-pa-md",[
+  html_param_node(user_model,pipeline,n)
+  for n in pipeline.nodes
+  ]),
+  StippleUI.btn("Execute Pipeline ",@click(string(pipeline.name)*"_execute = !"*string(pipeline.name)*"_execute"))
+])
 end
 
-function html_param_items(par::String)
-  p("Tool for String")
+
+
+function image_tabs(user_model,spliter_number)
+
+  mydiv([
+      q__tabs([
+
+        q__tab([
+          mydiv(class="row  items-center",[
+
+              " {{list_image[image_str].img_id}} ",q__btn([],@click("image_viewer[$spliter_number].splice(index, 1)"),flat="", icon="close"),
+              q__btn([],@click("image_viewer[$spliter_number].splice(index, 1);image_viewer[($spliter_number+1)%2].push(image_str);tabs_model[($spliter_number+1)%2]=image_str
+              
+              "),flat="", icon="vertical_split")
+          ])
+
+
+        ],@recur("(image_str,index) in image_viewer[$spliter_number]"),name! = "list_image[image_str].img_id", key! = "list_image[image_str].img_id", @click("selected_image=list_image[image_str].img_id"))
+
+      ],@bind("tabs_model[$spliter_number]"),dense="",narrow__indicator=""),
+      q__tab__panels(
+        [
+          q__tab__panel([
+
+          StippleUI.imageview([],alt = "Format not suported",@click("selected_image=list_image[image_str].img_id");key! = "list_image[image_str].img_id",src! = "'/image?path='+list_image[image_str].image_path",  ),
+
+          ],@recur("image_str in image_viewer[$spliter_number]"),name! = "list_image[image_str].img_id"),
+
+          q__tab__panel(["Select a iamge in tab"],name! ="''")
+        ],
+        @bind("tabs_model[$spliter_number]"),animated=""
+      )
+
+  ])
+
 end
 
-function html_param(symbol_plugin,type_pram_plugin)
-    global model
-    @info "generate html for $symbol_plugin"
-    paramtype = type_pram_plugin
-    list = []
 
-    for (field_name,field_type) in zip(fieldnames(paramtype),fieldtypes(paramtype))
-         @info field_name
-         if startswith(string(field_name),"channel") || startswith(string(field_name),"_") || startswith(string(field_name),"isready")  || startswith(string(field_name),"isprocessing")
-           continue
-         end
-         push!(list,html_param_items(field_type(),symbol_plugin,field_name))
-    end
-    return list
-end
-
-function main_page()
+function main_page(user_model)
     
     mydiv(class="",[
     
-    StippleUI.imageview(src=:update_image, style = "height: 100%; max-width: 100%" )
-
-     ]
+    q__splitter([
+    Genie.Renderer.Html.template("",
+      var"v-slot:before"="",
+      [
+        image_tabs(user_model,0)
+      ]
+    ),
+    Genie.Renderer.Html.template("",
+    var"v-slot:after"="",
+    [
+      image_tabs(user_model,1)
+    ]
+  )
+    ],@bind("splitter")
+    
+    )
+    
+    ]
     )
 end
 
-function menupage()
-    mydiv(class="col-3",[
-     p("Menu"),
-     mydiv(html_param(:cropper,Param))
+function image_list_layout(user_model)
+
+  # on(user_model.selected_visual_plugin) do _
+  #   if(user_model.selected_image[]!="" && user_model.selected_visual_plugin[]!="")
+    
+  #     execute_plugin(user_model,Symbol(user_model.selected_visual_plugin[]))
+  #   end
+    
+  # end
+
+
+  q__card([
+  mydiv(class="",
+  [
+    q__list([
+
+      q__item(
+      [
+        q__item__section(["{{image_id}} : {{image.image_path}}"])
+
+      ],
+      @recur("(image,image_id) in list_image"),
+      clickable="",
+      v__ripple="",
+      active! ="selected_image === image_id",
+      active__class="active-link",
+      @click("selected_image=image_id"),
+      var"v-on:dblclick"="image_viewer[0].push(image_id)"
+      )
+
+    ],bordered="",padding=""),
+
+
+    # q__list([
+
+    #   q__item(
+    #   [
+    #     q__item__section([""*string(visul_plugin.first)])
+
+    #   ],
+    #   clickable="",
+    #   v__ripple="",
+    #   active! = "selected_visual_plugin == '"*string(visul_plugin.first)*"' ",
+    #   active__class="active-link",
+    #   @click("selected_visual_plugin = \""*string(visul_plugin.first) *"\" "),
+    #   ) for visul_plugin in visual_plugin_list()
+
+    # ],bordered="",padding=""),
+  ]
+  ),
+  
+  
+  
+  ])
+  
+end
+
+function remote_file_opener(user_model)
+  
+end
+
+function menupage(user_model)
+  #style="height = calc(100vw-50px);"
+    mydiv(class="column justify-between fit no-wrap",[
+     #mydiv(html_param(user_model,:cropper,Param))
+     pipeline_render(user_model,pipelines()["croper"])
+    ,
+     uploader()
+     ,
+     mydiv([
+     image_list_layout(user_model)
+     ])
 
      #map(p -> html_param(p[3]),plugin_list())
      
@@ -172,12 +296,21 @@ function menupage()
     )
 end
 
+function uploader()
+
+  return StippleUI.uploader([],:multiple,:batch,:auto__upload,url="/upload",label="Image upload",  method = "POST", no__thumbnails = true,
+   #var"v-on:uploaded"="""(i)=>{for(let file of i['files']){list_image[file.name] = {img_id:file.name,image_path:'/dev/shm/'+file.name}}}"""
+  )
+end
+
 function page_loyout(content,drawer)
     StippleUI.layout(view="hHh lpR fFf",[
       q__header(class="bg-primary text-white" , reveal="",bordered="",
       [
         StippleUI.q__toolbar([
-            StippleUI.btn("", dense="", flat="", round="",icon="menu",@click("leftDrawerOpen=!leftDrawerOpen"))
+            StippleUI.btn("", dense="", flat="", round="",icon="menu",@click("leftDrawerOpen=!leftDrawerOpen")),
+           
+             "{{ debug}}"
 
         ]
 
@@ -193,48 +326,80 @@ function page_loyout(content,drawer)
 
 
     ])
-end
 
-function ui(model)
+  end
+
+
+  #
+function ui(user_model)
+
 
   [
-    CSS,
-    page(model,class="container", [
+
+    page(user_model,class="container",
+      prepend=[
+        css()
+      #Stipple.Elements.stylesheet("https://cdn.jsdelivr.net/npm/vue-draggable-resizable@2.3.0/dist/VueDraggableResizable.css")
+      ]
+      ,
+     [
       page_loyout([
-             main_page()
+             main_page(user_model)
 
       ],
       [
-        menupage()
+        menupage(user_model)
 
       ])
 
 
   ] ),
 
-  Genie.Assets.channels_support(), # auto-reload functionality relies on channels
-  GenieAutoReload.assets()
+  #Genie.Renderer.Html.script(src = "https://cdn.jsdelivr.net/npm/vue-grid-layout@2.4.0/dist/vue-grid-layout.umd.js"),
+
+  
+
+
+  #Genie.Assets.channels_support(), # auto-reload functionality relies on channels
+  #GenieAutoReload.assets()
   ]
 end
 
+user_model = Stipple.init(Model)
 
 route("/") do 
-  global model
-  model = Stipple.init(Model)
-  html(ui(model), context = @__MODULE__)
+  html(ui(user_model), context = @__MODULE__)
 end
 
 
-route("/currentimage") do 
-    Genie.Router.serve_file(IMG_PATH)
+route("/image") do 
+  @info  Genie.Requests.getpayload(:path,"")
+  Genie.Router.serve_file(Genie.Requests.getpayload(:path,""))
 end
  
+route("/upload", method = POST) do 
+  #@info  Genie.Requests.getpayload(:imgs,"")
+
+  @info "upload files "
+  arr = []
+   for (k,v) in Genie.Requests.filespayload()
+
+     path = UPLOAD_PATH*k # WARNING NO DATAFILTERED
+     open(path, "w") do io
+      write(path, v.data)
+    end
+    user_model.list_image[][k] = ZzImage(k,path)
+    push!(user_model)
+   end
+   Genie.Renderer.Json.json(arr)
+end
+
 
 # using Revise
 # faire fonciotn start and stop 
 Genie.config.websockets_server = true
-GenieAutoReload.autoreload(joinpath(pwd(),"src"),devonly = false)
-up() # or `up(open_browser = true)` to automatically open a browser window/tab when launching the app
+#GenieAutoReload.autoreload(joinpath(pwd(),"src"),devonly = false)
+up(async=isinteractive()) # or `up(open_browser = true)` to automatically open a browser window/tab when launching the app
 
 
 

@@ -1,78 +1,54 @@
-using Stipple
+import Stipple
+using Genie
 
-# macro inputer(expr,expr)
-#     expr isa Expr && expr.head === :struct || error("Invalid usage of inputer")
-#     expr = expr::Expr
-# end
-
-Stipple.@kwdef  struct Roi
-    x1::R{Int} = 0
-    x2::R{Int}  = 0
-    y1::R{Int}  = 0
-    y2::R{Int}  = 0
+Stipple.@kwdef struct Roi
+    x1::Int = 0
+    x2::Int = 0
+    y1::Int = 0
+    y2::Int = 0
 end
 
-
 Stipple.@kwdef struct Slider
-    v::R{Int} = 0
+    v::Int = 0
     # function SliderInt{M, Max,Step}(v::Int=0)
     #     new{M, Max,Step}(v)
     # end
 end
 
+function flat_reactive_struct(type::DataType,prefix="")
+    fields_sub_type = []
 
-## TESS MODULE
+    fields = fieldnames(type)
 
-struct Input
-    image
-end
+    values = getfield.(Ref(type()), fields)
 
-Stipple.@kwdef mutable struct Param 
-    roi::Roi
-    theata::Slider
-end
+    for (field_name,field_type,v) in zip(fields,fieldtypes(type),values)
+        if length(fieldnames(field_type)) > 0 
 
-struct Output 
-    image
-end
+            push!(fields_sub_type,
+            flat_reactive_struct(field_type,string(prefix)*string(field_name)*"_")...
+            )
 
-
-
-
-function main(input,param)
-    return input.image[param.roi.y1:param.roi.y2,param.roi.x1:param.roi.x2]
-end
-
-# function ask(param::SliderInt)
-#     print("set param for slider as 5: ")
-#     param.v = 5
-# end
-
-function ask(param::Roi)
-    print("ask roi ")
-    param.x1 = 5
-    param.x2 = 150
-    param.y1 = 5
-    param.y2 = 150
-end
-
-
-function ask_param(param)
-    for name in fieldnames(typeof(param))
-     ask(getproperty(param,name)) 
+        else
+            push!(fields_sub_type,
+            :($(Symbol(prefix*string(field_name)))::R{$(field_type)} = $(v))
+            )
+        end
     end
+    return fields_sub_type
+end
+    
+function unflat_reactive_struct(type::DataType,flat::Any,prefix="")
+    dict_arg = Dict()
+    for (field_name,field_type) in zip(fieldnames(type),fieldtypes(type))
+        if length(fieldnames(field_type)) > 0 
 
+            dict_arg[field_name] = unflat_reactive_struct(field_type,flat,string(prefix)*string(field_name)*"_")
+            
+        else
+            dict_arg[field_name] = getfield(flat,Symbol(string(prefix)*string(field_name)))[]
+        end
+    end
+    return type(;dict_arg...)
 end
 
-
-
-# using FileIO
-
-# param = Param()
-# ask_param(param)
-# println(param)
-
-
-# input = Input(load("/home/bgirard/Téléchargements/P1100111-2.jpg"))
-
-# main(input,param)
