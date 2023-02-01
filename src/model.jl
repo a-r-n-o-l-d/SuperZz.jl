@@ -2,18 +2,19 @@ import Stipple
 using Genie
 
 Stipple.@kwdef struct Roi
-    x1::Int = 0
-    x2::Int = 0
-    y1::Int = 0
-    y2::Int = 0
+    name::String = ""
+    data::String = ""
 end
 
 Stipple.@kwdef struct Slider
-    v::Int = 0
+    v::Float32 = 0
     # function SliderInt{M, Max,Step}(v::Int=0)
     #     new{M, Max,Step}(v)
     # end
 end
+
+
+abstract type Param end
 
 function flat_reactive_struct(type::DataType,prefix="")
     fields_sub_type = []
@@ -37,6 +38,24 @@ function flat_reactive_struct(type::DataType,prefix="")
     end
     return fields_sub_type
 end
+
+function flat_var_reactive_struct(model,param::Any,prefix="")
+
+    type = typeof(param)
+    fields = fieldnames(type)
+
+    values = getfield.(Ref(param), fields)
+
+    for (field_name,field_type,v) in zip(fields,fieldtypes(type),values)
+        if length(fieldnames(field_type)) > 0 
+            flat_var_reactive_struct(model,v,string(prefix)*string(field_name)*"_")
+        else
+            getfield(model,Symbol(string(prefix*string(field_name))))[] = v 
+        end
+    end
+
+end
+
     
 function unflat_reactive_struct(type::DataType,flat::Any,prefix="")
     dict_arg = Dict()
