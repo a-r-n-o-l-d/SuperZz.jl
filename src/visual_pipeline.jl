@@ -10,4 +10,4 @@
 #
 
 
-VisualPipeLine = Pipeline("Visual",[PipelineNode([],DimentionalProcess,nothing)],true)
+VisualPipeLine = Pipeline("Visual",[PipelineNode(dimention)],true)

@@ -1,59 +1,114 @@
 
 using Stipple
+using LRUCache
+
+lru_max_size = 10
+
 # Pileline executor  
 #
 # 
+# Stipple.@kwdef mutable struct Cache
+#     is_dirty = true
+#     param = nothing
+#     data = nothing
+
+
+#     input_key = nothing
+#     input_value = nothing
+# end
+
+
 
 
 struct PipelineProcess
         name::String
         f::Function
-        Inputs::Vector{DataType}
-        Output::DataType
         Param::DataType
         user_param_modifier::Union{Function,Nothing}
-
-        PipelineProcess(n,f,i,o,p,u=nothing) = new(n,f,i,o,p,u)
+        PipelineProcess(n,fn,p,u=nothing) = new(n,fn,p,u)
 end
 
-Stipple.@kwdef mutable struct Cache
-    is_dirty = true
-    param = nothing
-    data = nothing
 
 
-    input_key = nothing
-    input_value = nothing
+function make_process(f::Function,fuser_param_modifier=nothing)
+  param = Nothing
+  for m in methods(f)
+    if m.sig.parameters[end] <: Param
+      if param == Nothing
+        param=m.sig.parameters[end]
+      elseif !(m.sig.parameters[end] isa param)
+        throw("Process function must finish with the same Param type")
+      end
+    else
+      @error m.sig
+      throw("Process function must finis with Param type")
+    end
+
+  end
+  PipelineProcess(string(Symbol(f)),f,param,fuser_param_modifier)
 end
+
+
 
 mutable struct PipelineNode
     inputs::Vector{Union{PipelineNode,Any}}
     process::PipelineProcess
-    output::Union{PipelineNode,Nothing}
-    cached::Cache
+    #cached::Cache
+    is_dirty_passe::Bool
+    cached_data::Any
 
-    PipelineNode(i,p,o,c=Cache()) = new(i,p,o,c)
+
+    PipelineNode(i,p::PipelineProcess,c=true) = new(i,p,c)
+
+    PipelineNode(i,p::Function) = new(i,make_process(p))
+    PipelineNode(p::Function) = new([],make_process(p))
 
 end
 
 #UserInputNode = PipelineNode([])
-
-Stipple.@kwdef struct Pipeline
+struct Pipeline
 
     name::String
     nodes::Vector{PipelineNode}
-    is_visual::Bool = false
+    is_visual::Bool
+
+    Pipeline(n,ns,i=false) = new(n,ns,i)
+    Pipeline(n,ns::PipelineNode) = new(n,[ns])
        
+end
+
+
+PLUGIN_DICT = Dict{String,Pipeline}()
+
+function make_pipeline(node_fct::Function,name::String)
+  global PLUGIN_DICT
+  PLUGIN_DICT[name] = Pipeline(name,node_fct())
+end
+
+function single_process(f::Function,f2=nothing)
+  make_pipeline(string(f)) do 
+    PipelineNode([],make_process(f,f2))
+  end
+end
+
+
+Stipple.@kwdef mutable struct InputImage
+  img_id::String = ""
+  img_name::String = ""
+
+  image::Any = Nothing
+  rois::Dict{String,Any} = Dict{String,Any}()
+end
+
+function Base.convert(::Type{InputImage},zzinput::ZzImage) 
+  InputImage(;img_id=zzinput.img_id,img_name=zzinput.img_name,image=load(zzinput.image_path),rois=zzinput.rois)
 end
 
 include("test_pipeline.jl")
 
-function pipelines()
 
-    return Dict("croper"=>CropperPipeline,"Dimention"=>DimentionalPipeline,
-    "histogram"=>histogramPipeline,
-    "binarise"=>binarisePipeline,
-    )
+function pipelines()
+    return PLUGIN_DICT
   end
 
 function all_pipeline()
@@ -115,32 +170,53 @@ function PipelineStructGenerator()
       throw(ArgumentError("No image selected"))
   end
   
+
+cache = LRU{Tuple{Any,Any},Any}(maxsize=lru_max_size)
+
+input_cache = LRU{String,InputImage}(maxsize=lru_max_size)
+
 function execute_process(user_model,pipeline,node,inputs::Vector)
 
-    process = node.process
-    @info "execute "*string(process.name)*" with $(length(inputs)) args"
+  process = node.process
+  @info "execute "*string(process.name)*" with $(length(inputs)) args"
+
+  if(isempty(inputs))
+    zzinput = select_image(user_model)
+    @info "The $(pipeline.name) need user input image "
+
+    # only load image is not in cache
+    inputs = [ get!(input_cache,zzinput.img_id) do 
+      @info "user input image loaded "
+      convert(InputImage,zzinput)
+    end ]
+
+    # update value if necesary
+    if(inputs[1].img_name != zzinput.img_name )
+      inputs[1].img_name = zzinput.img_name
+    end
     
-
-    if (process.user_param_modifier!==nothing)
-        process.user_param_modifier(user_model,pipeline.name*"_"*process.name,inputs...)
+    if(inputs[1].rois != zzinput.rois )
+        inputs[1].rois = zzinput.rois
     end
 
-    param = param_generator(user_model,pipeline.name,process.name,process.Param)
+  end
 
-    if(node.cached.param!=param)
-      node.cached.is_dirty=true
-    end
+  # first get param for cache
+  param = param_generator(user_model,pipeline.name,process.name,process.Param)
 
-    if !node.cached.is_dirty
-      return node.cached.data
-    end
-    @info "$(pipeline.name) node $(node.process.name) is dirty reompute it "
+  return get!(cache,(inputs,param)) do 
 
-    @info param
+      @info "$(pipeline.name) node $(node.process.name) is dirty recompute it "
 
-    output = process.f(inputs...,param)
-    @info "output in comuted"
-    return output
+      if (process.user_param_modifier!==nothing)
+            process.user_param_modifier(user_model,pipeline.name*"_"*process.name,inputs...)
+      end
+
+      param_after_user_param_modifier = param_generator(user_model,pipeline.name,process.name,process.Param)
+      output = process.f(inputs...,param)
+      @info "output in comuted"
+      return output 
+  end
 
 end
 
@@ -149,39 +225,26 @@ end
 function execute_node(user_model,pipeline,node::PipelineNode)
 
 
-    inputs = []
-    if isempty(node.inputs)
-      
-      zzinput = select_image(user_model)
-      @info "The $(pipeline.name) need user input image "
+  if !node.is_dirty_passe
+    return node.cached_data
+  end
+  # 
 
-      if(node.cached.input_key==zzinput.img_id)
-        #if image do no change
-
-        inputs= node.cached.input_value
-      else
-        node.cached.input_key=zzinput.img_id
-        node.cached.is_dirty = true
-        inputs = [load(zzinput.image_path)]
-        node.cached.input_value = inputs
-        @info "user input image loaded "
-      end
-    else
-        for input_node in node.inputs
-            if input_node.cached.is_dirty
+  inputs = []
+  for input_node in node.inputs
+            if input_node.is_dirty_passe
                 # if one of my chil is dirty so im I
-                node.cached.is_dirty = true
+                node.is_dirty_passe = true
 
                 execute_node(user_model,pipeline,input_node)
             end
-            push!(inputs,input_node.cached.data)
-        end
-    end
+            push!(inputs,input_node.cached_data)
+   end
 
 
     output = execute_process(user_model,pipeline,node,inputs)
-    node.cached.is_dirty=false
-    node.cached.data=output
+    node.is_dirty_passe =false
+    node.cached_data =output
     return output
 end
 
@@ -197,6 +260,12 @@ end
       @info "Selected image :", user_model.selected_image[]
       output_to_keep  = nothing
       output_to_keep_name  = ""
+
+      # reset node execution
+      for node in pipeline.nodes 
+        node.is_dirty_passe=true
+      end
+
       try
         out = nothing
         last_node = nothing

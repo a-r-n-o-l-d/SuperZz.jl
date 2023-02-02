@@ -3,7 +3,6 @@ using Genie
 
 Stipple.@kwdef struct Roi
     name::String = ""
-    data::String = ""
 end
 
 Stipple.@kwdef struct Slider

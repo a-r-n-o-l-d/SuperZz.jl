@@ -13,9 +13,11 @@ import UUIDs
 import Genie.Renderer.Html: HTMLString, normal_element, register_normal_element
 
 const UPLOAD_PATH = "/dev/shm/"
-
-include("model.jl")
 include("custom_log.jl")
+
+include("zzimage.jl")
+include("model.jl")
+
 include("pipeline.jl")
 include("html_param.jl")
 include("visual_pipeline.jl")
@@ -31,19 +33,7 @@ register_normal_element("q__header",context= @__MODULE__ )
 
 
 
-# Write your package code here.
 
-# function plugin_loading()
-#     using FromFile: @from
-#     plugins = []
-#     map(requested_plugins) do plugin_path
-#         plugin_name = splitext(splitdir(plugin_path)[2])[1]
-#         plugin = Symbol(plugin_name)
-#         @eval @from $plugin_path import $plugin
-#         @eval $plugin.activate()
-#         push!(plugins, plugin)
-#     end
-# end
 
 
 
@@ -65,8 +55,6 @@ css() = style("""
 
 
 # Plugin de test : 
-# Plugin Historgramme (avec ça propre fenetre ?)
-# Plugin de Crop
 # Sepapez les cannaux 
 # Filtre gaussien
 
@@ -78,47 +66,7 @@ css() = style("""
 
 # loaded image
 
-abstract type  ZzView
 
-end
-
-
-Base.@kwdef mutable struct ZzImage <: ZzView
-  img_id::String =""
-  image_path::String = ""
-  image_version::Int = 0 # to force navigoator to reload image
-
-  img_visual_path::String = ""
-
-  img_name::String = ""
-
-  rois::Dict{String,Any} = Dict{String,Any}()
-  type = "ZzImage"
-end
-
-
-Base.@kwdef mutable struct ZzPlot <: ZzView
-  img_id::String =""
-  data::Vector{Any} = []
-
-  img_name::String=""
-  type = "ZzPlot"
-end
-
-function Base.convert(::Type{T},value::Dict{String, Any}) where {T<:ZzView}
-  try
-    if value["type"] == "ZzImage"
-      ZzImage(; Dict(zip(Symbol.(string.(keys(value))), values(value)))... ) 
-    else
-      ZzPlot(; Dict(zip(Symbol.(string.(keys(value))), values(value)))... )
-    end
-  catch e
-    @error value
-    @error "convert went wrong" exception=(e, catch_backtrace())
-
-  end
-  
-end
 
 
 
@@ -127,15 +75,11 @@ function demo_image()
   path = "/home/bgirard/Téléchargements/P1100119-2.jpg"
   path2 = "/home/bgirard/Téléchargements/test.ome.tif"
   #img = load(path)
-  Dict("SampleZZ"=>ZzImage(
+  dict = Dict{String,ZzView}("SampleZZ"=>ZzImage(
     image_path=path,
     img_id="SampleZZ",
     img_name="SampleZZ"
-  ),
-  "HistSampleZZ"=>ZzPlot(
-        img_id="HistSampleZZ",data=histogram(load("/home/bgirard/Téléchargements/P1100119-2.jpg"),Nothing),
-        img_name="HistSampleZZ"
-      )
+  )
   ,
   "ComplexSampleZZ"=>ZzImage(
     image_path=path2,
@@ -143,6 +87,12 @@ function demo_image()
     img_name="ComplexSampleZZ"
   )
   )
+  dict["HistSampleZZ"] = ZzPlot(
+    img_id="HistSampleZZ",data=histogram(convert(InputImage,dict["SampleZZ"]),NoParam()),
+    img_name="HistSampleZZ"
+  )
+
+  return dict
 end
 
 function demo_image_viewer()
@@ -287,10 +237,13 @@ function image_tabs(user_model,spliter_number)
         q__tab([
           mydiv(class="row  items-center",[
 
-              " {{list_image[image_str].img_name}} ",q__btn([],@click("image_viewer[$spliter_number].splice(index, 1)"),flat="", icon="close"),
-              q__btn([],@click("image_viewer[$spliter_number].splice(index, 1);if(image_viewer[($spliter_number+1)%2].indexOf(image_str)==-1){image_viewer[($spliter_number+1)%2].push(image_str)};tabs_model[($spliter_number+1)%2]=image_str
+              " {{list_image[image_str].img_name}} ",
               
-              "),flat="", icon="vertical_split")
+              q__btn([],@click("image_viewer[$spliter_number].splice(index, 1)"),flat="", icon="close"),
+
+              q__btn([],@click(
+                
+          "split_image($spliter_number,index,image_str)"),flat="", icon="vertical_split")
           ])
 
 
@@ -581,7 +534,7 @@ function ui(user_model)
 
   #Genie.Renderer.Html.script(src = "https://cdn.jsdelivr.net/npm/vue-grid-layout@2.4.0/dist/vue-grid-layout.umd.js"),
 
-  Genie.Renderer.Html.script(src = "https://cdnjs.cloudflare.com/ajax/libs/konva/7.2.5/konva.js"),
+  Genie.Renderer.Html.script(src = "https://cdnjs.cloudflare.com/ajax/libs/konva/8.4.2/konva.js"),
   Genie.Renderer.Html.script(src = "https://unpkg.com/vue-konva@2.1.7/umd/vue-konva.js"),
 
   Genie.Renderer.Html.script(src = "/stippleui.jl/master/assets/js/konva-viewer.js"),
@@ -615,6 +568,29 @@ delete_image(image_id)
 },
 removeEmpty(arrr) {
   return arrr.map(obj=> Object.fromEntries(Object.entries(obj).filter(([_, v]) => v != null)));
+},
+split_image(splitter_num,index,image_str)
+{
+  let another_image_id = "";
+  if(index==0 && this.image_viewer[splitter_num].length>0)
+    another_image_id = this.image_viewer[splitter_num][1]
+  else
+    another_image_id = this.image_viewer[splitter_num][0]
+
+  this.image_viewer[splitter_num].splice(index, 1);
+  
+  if(this.image_viewer[(splitter_num+1)%2].indexOf(image_str)==-1)
+  {
+    this.image_viewer[(splitter_num+1)%2].push(image_str)
+  
+  };
+    
+  let tm = ["",""]
+  tm[(splitter_num+1)%2] = image_str.toString()
+  tm[(splitter_num)%2]   = another_image_id.toString()
+
+  let self =this;
+  setTimeout(()=>self.tabs_model = tm,10) 
 }
 
 """

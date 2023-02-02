@@ -30,29 +30,38 @@ Stipple.@kwdef mutable struct DimentionalParam  <: Param
 end
 
 
-function crop(input,param::CropParam)
-    return input[1:500,1:500]
+function crop(input::InputImage,param::CropParam)
+    
+    roi = input.rois[param.roi.name]
+    @info "crop" input.rois[param.roi.name]
+
+    x = trunc(Int,roi["x"]+1)
+    x2 = x+ trunc(Int,roi["width"]+1)
+    y = trunc(Int,roi["y"]+1)
+    y2 = y+ trunc(Int,roi["height"]+1)
+    return input.image[y:y2,x:x2]
     #return "test"
     #return Output(image=input.image[param.roi.y1:param.roi.y2,param.roi.x1:param.roi.x2])
 end
+single_process(crop)
 
-CropperProcess= PipelineProcess("crop",crop,[Any],Any,CropParam)
-
-function gray(input,param)
+function gray(input::InputImage,param::NoParam)
     return Gray.(input.image)
     #return Output(image=input.image[param.roi.y1:param.roi.y2,param.roi.x1:param.roi.x2])
 end
+single_process(gray)
 
-GrayVisualProcess = PipelineProcess("gray",gray,[Any],Any,NoParam)
 
-function dimention(image,param)
+function dimention(image::InputImage,param::DimentionalParam)
 
     @info "dimention test $param.dimention"
-    return image[:,:,param.dimentions.v...]
+    return image.image[:,:,param.dimentions.v...]
     #return Output(image=input.image[param.roi.y1:param.roi.y2,param.roi.x1:param.roi.x2])
 end
 
-function dimention_setter(user_model,flat_field,image)
+function dimention_setter(user_model,flat_field,input::InputImage)
+
+    image= input.image
     
     @info "dimention_setter : $(typeof(image))"
 
@@ -84,14 +93,16 @@ function dimention_setter(user_model,flat_field,image)
     #push!(user_model)
 end
 
-DimentionalProcess = PipelineProcess("dimention",dimention,[Any],Any,DimentionalParam,dimention_setter)
+single_process(dimention,dimention_setter)
 
 using Plots, StatsBase
 
-function histogram(input,param)::Vector{PlotData}
+function histogram(input::InputImage,param::NoParam)::Vector{PlotData}
+
+    image= input.image
     hists = []
     for (comp, col) = zip([red, green, blue], [RGB(1,0,0), RGB(0,.8,0), RGB(0,0,1)])
-        hist = fit(Histogram, reinterpret.(comp.(vec(input))), 0:256)
+        hist = fit(Histogram, reinterpret.(comp.(vec(image))), 0:256)
         push!(hists,PlotData(
             x = collect(hist.edges[1]),
             y = hist.weights,
@@ -106,33 +117,19 @@ function histogram(input,param)::Vector{PlotData}
     #return Output(image=input.image[param.roi.y1:param.roi.y2,param.roi.x1:param.roi.x2])
 end
 
-histogramProcess = PipelineProcess("histogram",histogram,[Any],Any,NoParam)
-
-
+single_process(histogram)
 
 Stipple.@kwdef mutable struct BinariseParam <: Param
     bin::Slider = Slider()
 end
-function binarise(input,param::BinariseParam)
-    img = Gray.(input)
+function binarise(input::InputImage,param::BinariseParam)
+    img = Gray.(input.image)
     return img .> param.bin.v
     #return "test"
     #return Output(image=input.image[param.roi.y1:param.roi.y2,param.roi.x1:param.roi.x2])
 end
-binariseProcess = PipelineProcess("binarise",binarise,[Any],Any,BinariseParam)
-binarisePipeline = Pipeline("binarise",[PipelineNode([],binariseProcess,nothing)],false)
 
-
-
-DimentionalPipeline = Pipeline("Dimention",[PipelineNode([],DimentionalProcess,nothing)],false)
-
-
-CropperPipeline = Pipeline("croper",[PipelineNode([],CropperProcess,nothing)],false)
-
-
-histogramPipeline = Pipeline("histogram",[PipelineNode([],histogramProcess,nothing)],false)
-
-
+single_process(binarise)
 
 
 

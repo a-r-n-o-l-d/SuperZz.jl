@@ -19,5 +19,7 @@ function metafmt(level::LogLevel, _module, group, id, file, line)
 end
 
 
-debug_logger = ConsoleLogger(stderr, Logging.Info,meta_formatter=metafmt);
-global_logger(debug_logger);
+if !isdefined(Main, Symbol("debug_logger"))
+  debug_logger = ConsoleLogger(stderr, Logging.Info,meta_formatter=metafmt);
+  global_logger(debug_logger)
+end
