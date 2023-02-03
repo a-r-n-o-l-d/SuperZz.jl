@@ -1,6 +1,6 @@
 using Logging
 
-function metafmt(level::LogLevel, _module, group, id, file, line)
+function myformater(level::LogLevel, _module, group, id, file, line)
   @nospecialize
   color = Logging.default_logcolor(level)
   prefix = string(level == Warn ? "Warning" : string(level), ':')
@@ -19,7 +19,9 @@ function metafmt(level::LogLevel, _module, group, id, file, line)
 end
 
 
+
+
 if !isdefined(Main, Symbol("debug_logger"))
-  debug_logger = ConsoleLogger(stderr, Logging.Info,meta_formatter=metafmt);
-  global_logger(debug_logger)
+  zz_logger = ConsoleLogger(stderr, Logging.Info,meta_formatter=myformater);
+  global_logger(zz_logger)
 end

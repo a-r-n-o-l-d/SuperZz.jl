@@ -1,9 +1,10 @@
-# using SuperZz
+using SuperZz
 using Test
 
-# @testset "SuperZz.jl" begin
-#     # Write your tests here.
-# end
+@testset "SuperZz.jl" begin
+    # Write your tests here.
+    @test 7==7
+end
 
 abstract type Param end
 

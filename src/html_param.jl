@@ -34,7 +34,7 @@ function html_param_items(user_model,::DimentionSlider,symbol_model,field_name,p
         @info "param $(flat_name)_v is update"
       
         if pipeline.is_visual
-       #   execute_pipeline(user_model,pipeline,node)
+          execute_pipeline(user_model,pipeline,node)
         end
   end
 

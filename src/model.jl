@@ -1,5 +1,4 @@
-import Stipple
-using Genie
+
 
 Stipple.@kwdef struct Roi
     name::String = ""

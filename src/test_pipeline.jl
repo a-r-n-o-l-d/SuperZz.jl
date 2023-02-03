@@ -54,8 +54,10 @@ single_process(gray)
 
 function dimention(image::InputImage,param::DimentionalParam)
 
-    @info "dimention test $param.dimention"
-    return image.image[:,:,param.dimentions.v...]
+    @info "dimention test $(param.dimentions)"
+    ima =  Base.view(image.image,:,:,param.dimentions.v...)
+    @info "dimention test finish "
+    return ima
     #return Output(image=input.image[param.roi.y1:param.roi.y2,param.roi.x1:param.roi.x2])
 end
 
@@ -73,13 +75,16 @@ function dimention_setter(user_model,flat_field,input::InputImage)
 
     max_field = getfield(user_model,Symbol(flat_field*"_max_v"))
 
+
     min_field[]=[Tuple(first(CartesianIndices(axes(image)[3:end])))...]
     max_field[]=[Tuple(last(CartesianIndices(axes(image)[3:end])))...]
     getfield(user_model,Symbol(flat_field*"_step_v"))[]=[Tuple(step(CartesianIndices(axes(image)[3:end])))...]
 
+
+
     nva = vcat([v for v in values[] ] , [ 1 for _ in 1:(length(axes(image)[3:end])-length(values[])) ]  )  
     @warn nva "is strange"
-    @info max_field[] min_field[]
+    @debug max_field[] min_field[]
     @info "image exes" axes(image)
     nva = clamp.(nva,min_field[],max_field[])
 
@@ -95,7 +100,7 @@ end
 
 single_process(dimention,dimention_setter)
 
-using Plots, StatsBase
+
 
 function histogram(input::InputImage,param::NoParam)::Vector{PlotData}
 

@@ -1,7 +1,4 @@
 
-using Stipple
-using LRUCache
-
 lru_max_size = 10
 
 # Pileline executor  
@@ -62,6 +59,9 @@ mutable struct PipelineNode
 
     PipelineNode(i,p::Function) = new(i,make_process(p))
     PipelineNode(p::Function) = new([],make_process(p))
+
+    PipelineNode(i,p::Function,f2::Function) = new(i,make_process(p,f2))
+    PipelineNode(p::Function,f2::Function) = new([],make_process(p,f2))
 
 end
 
@@ -161,7 +161,7 @@ function PipelineStructGenerator()
   end
   
   
-  function select_image(user_model)
+  function select_image(user_model,pipeline)
       for (k,v) in user_model.list_image[]
           if k==user_model.selected_image[]
               return v
@@ -181,7 +181,8 @@ function execute_process(user_model,pipeline,node,inputs::Vector)
   @info "execute "*string(process.name)*" with $(length(inputs)) args"
 
   if(isempty(inputs))
-    zzinput = select_image(user_model)
+    zzinput = select_image(user_model,pipeline)
+    @info "Selected image :", zzinput.img_id
     @info "The $(pipeline.name) need user input image "
 
     # only load image is not in cache
@@ -207,13 +208,15 @@ function execute_process(user_model,pipeline,node,inputs::Vector)
   return get!(cache,(inputs,param)) do 
 
       @info "$(pipeline.name) node $(node.process.name) is dirty recompute it "
-
+      @info "process process.user_param_modifier" process.user_param_modifier
       if (process.user_param_modifier!==nothing)
             process.user_param_modifier(user_model,pipeline.name*"_"*process.name,inputs...)
+            @info "user_param_modifier is finish"
       end
 
+
       param_after_user_param_modifier = param_generator(user_model,pipeline.name,process.name,process.Param)
-      output = process.f(inputs...,param)
+      output = process.f(inputs...,param_after_user_param_modifier)
       @info "output in comuted"
       return output 
   end
@@ -257,7 +260,7 @@ end
        @info "with process="*exec_node.process.name    
       end
     
-      @info "Selected image :", user_model.selected_image[]
+
       output_to_keep  = nothing
       output_to_keep_name  = ""
 
@@ -292,7 +295,7 @@ end
       end
 
     try   
-      zzinput = select_image(user_model)
+      zzinput = select_image(user_model,pipeline)
     add_image_to_model(user_model,pipeline,output_to_keep_name,zzinput.img_id,zzinput.img_name,output_to_keep)
   
     catch e

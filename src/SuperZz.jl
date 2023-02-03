@@ -1,20 +1,25 @@
 module SuperZz
 
+using Stipple
 using GenieFramework
+using FileIO
+using Images
+#import UUIDs
+import Genie.Renderer.Html: HTMLString, normal_element, register_normal_element
+using LRUCache
+#using Plots, 
+using StatsBase
+
+
 @genietools
 
+@info "SuperZZ Loaded"
 Genie.Assets.add_fileroute(StippleUI.assets_config, "konva-viewer.js", basedir = pwd())
 
-
 const mydiv = Genie.Renderer.Html.div
-using Stipple, StippleUI
-using Images, FileIO
-import UUIDs
-import Genie.Renderer.Html: HTMLString, normal_element, register_normal_element
-
 const UPLOAD_PATH = "/dev/shm/"
-include("custom_log.jl")
 
+include("custom_log.jl")
 include("zzimage.jl")
 include("model.jl")
 
@@ -125,6 +130,9 @@ PipelineStructGenerator()
 
     debug::R{String} = ""
 
+
+    filter::R{String} = ""
+
     files_tree::R{Vector{Dict{String,Any}}} = [Dict("label"=>"/","path"=>"/","lazy"=>true)]
     files_selected::R{String} = ""
 
@@ -156,11 +164,11 @@ function html_param_node(user_model,pipeline,node)
   end
 
   on(getfield(user_model,Symbol(string(pipeline.name)*"_"*process.name*"_execute"))) do _
-    @info "execute is call"
+    @info "execute is call for process $(process.name)"
     execute_pipeline(user_model,pipeline,node)
   end
 
-  return q__card(class="q-pa-md", [p("Param for Process : "*string(process.name)),mydiv(list),
+  return q__card(class="q-pa-md", [p("Param for Process  : "*string(process.name)),mydiv(list),
 
     (!pipeline.is_visual) ? StippleUI.btn("Execute ",@click(string(pipeline.name)*"_"*process.name*"_execute = !"*string(pipeline.name)*"_"*process.name*"_execute")) : "" 
   
@@ -172,7 +180,7 @@ function pipeline_render(user_model,pipeline)
 
 
   on(getfield(user_model,Symbol(string(pipeline.name)*"_execute"))) do _
-    @info "execute is call"
+    @info "execute is call for pipeline $(pipeline.name) "
     execute_pipeline(user_model,pipeline,nothing)
   end
 
@@ -398,46 +406,36 @@ end
 
 
 
-
-function remote_file_opener(user_model)
-
-  on(user_model.files_selected) do _
-    path =  user_model.files_selected[]
-    if !isdir(path)
-      img_id=  basename(path)
-      if haskey(user_model.list_image[],img_id)
-        user_model.list_image[][img_id].image_path=path
-        user_model.list_image[][img_id].image_version+=1
-      else
-        user_model.list_image[][img_id] = ZzImage(img_id=img_id,image_path=path,image_version=1)
-      end
-
-    end
-    push!(user_model,:list_image)
-  end
+include("remote_file_explorer.jl")
 
 
-  mydiv([
-    q__tree([],nodes! = "files_tree",dense="",var":selected.sync"="files_selected",node__key="path",
-    # var"@update:selected" = "
-    # (['png', 'tiff', 'jpg'].includes(\$event.split('.').pop()))?list_image[\$event] = {img_id:\$event,image_path:\$event,image_version:0}:false
-    # ",
-    var"v-on:lazy-load"="""lazyload"""
+function pipeline_list(user_model)
+  mydiv(class="fit overflow-auto",
+  [
+    q__input([],filled = "",label = "Filter" ,@bind("filter")),
+    mydiv(
+      [
+        mydiv([ pipeline_render(user_model,p)],
+        
+        var"v-show"="'$k'.toLowerCase().indexOf(filter.toLowerCase())>-1"
+        ) for (k,p) in pipelines()
+      ]
     )
 
-  ])
-  
+
+  ]
+
+  )
 end
 
 function rightmenupage(user_model)
   #style="height = calc(100vw-50px);"
-    mydiv(class="column  fit no-wrap",[mydiv([
-     #mydiv(html_param(user_model,:cropper,Param))
-     pipeline_render(user_model,p) for (k,p) in pipelines()
-    
-     #map(p -> html_param(p[3]),plugin_list())
-     ]),
+    mydiv(class="column  fit no-wrap justify-between",[
+      pipeline_list(user_model),
+     q__card([
+      " Visual param",
      pipeline_render(user_model,VisualPipeLine)
+     ])
      ]
     )
 end
@@ -464,13 +462,8 @@ function menupage(user_model)
      ]
     )
 end
+include("file_upload.jl")
 
-function uploader()
-
-  return StippleUI.uploader(class="uploadclass", [],:multiple,:batch,:auto__upload,url="/upload",label="Image upload",  method = "POST", no__thumbnails = true,
-   #var"v-on:uploaded"="""(i)=>{for(let file of i['files']){list_image[file.name] = {img_id:file.name,image_path:'/dev/shm/'+file.name}}}"""
-  )
-end
 
 function page_loyout(content,drawer,drawerright)
     StippleUI.layout(view="hHh lpR fFf",[
@@ -608,55 +601,20 @@ route("/image") do
   Genie.Router.serve_file(Genie.Requests.getpayload(:path,""))
 end
 
-route("/readdir") do 
-  @info "readir:" Genie.Requests.getpayload(:path,"/")
+
  
-  path = Genie.Requests.getpayload(:path,"/")
-  if path ==""
-    path="/"
 
-  end
-  files = []
-  for item in  readdir(path)
-    if(startswith(item,"."))
-      continue
-    end
-    if isdir(path*"/"*item)
-      push!(files,Dict("label"=>item,"path"=>path*"/"*item,"lazy"=>true))
-    else
-      push!(files,Dict("label"=>item,"path"=>path*"/"*item))
-    end
-
-  end
-  json(files)
-
-end
- 
- 
-route("/upload", method = POST) do 
-  #@info  Genie.Requests.getpayload(:imgs,"")
-
-  @info "upload files "
-  arr = []
-   for (k,v) in Genie.Requests.filespayload()
-
-     path = UPLOAD_PATH*k # WARNING NO DATAFILTERED
-     open(path, "w") do io
-      write(path, v.data)
-    end
-    user_model.list_image[][k] = ZzImage(img_id=k,image_path=path,image_version=1,img_name=k)
-    push!(user_model)
-   end
-   Genie.Renderer.Json.json(arr)
-end
 
 
 # using Revise
 # faire fonciotn start and stop 
 Genie.config.websockets_server = true
 #GenieAutoReload.autoreload(joinpath(pwd(),"src"),devonly = false)
-up(async=isinteractive()) # or `up(open_browser = true)` to automatically open a browser window/tab when launching the app
 
+# with_logger(zz_logger) do 
 
+  up(async=isinteractive()) # or `up(open_browser = true)` to automatically open a browser window/tab when launching the app
+
+#end
 
 end
