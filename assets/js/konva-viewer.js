@@ -3,7 +3,16 @@ Vue.component('k-viewer', {
 
     template : `<div style="width : 100%;
     height : 100%;" ref="imagecontainer" class="viewercontainer">
-    <v-stage ref="stage" :config="configKonva" @wheel="handleScroll"
+
+    <div v-if="is_loading" class="loading" 
+    style = "
+      background: transparent url('https://miro.medium.com/max/882/1*9EBHIOzhE1XfMYoKz1JcsQ.gif') center no-repeat;
+      height: 10vw;
+      width: 100%;
+    "
+    ></div>
+
+    <v-stage v-show="!is_loading" ref="stage" :config="configKonva" @wheel="handleScroll"
     @mouseenter="handleGlobalMouseEnter" 
     @mouseleave="handleGlobalMouseLeave"
     @mouseDown="handleMouseDown"
@@ -41,6 +50,7 @@ Vue.component('k-viewer', {
             image_width : 1,
             image: new window.Image(),
             is_editting :false,
+            is_loading : true
         }
     },
     name: "k-viewer",
@@ -255,6 +265,8 @@ Vue.component('k-viewer', {
 
             console.log("laoded ")
             console.log(this.image)
+            self.is_loading=false
+
             self.image_height=this.image.height;
             self.image_width=this.image.width;
 

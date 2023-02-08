@@ -82,7 +82,8 @@ function dimention_setter(user_model,flat_field,input::InputImage)
 
 
 
-    nva = vcat([v for v in values[] ] , [ 1 for _ in 1:(length(axes(image)[3:end])-length(values[])) ]  )  
+    nva = vcat([v for v in values[] ] , [ 1 for _ in 1:(length(axes(image)[3:end])-length(values[])) ]  ) 
+    resize!(nva,length(axes(image)[3:end])) 
     @warn nva "is strange"
     @debug max_field[] min_field[]
     @info "image exes" axes(image)

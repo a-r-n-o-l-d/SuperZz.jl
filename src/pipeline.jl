@@ -172,7 +172,6 @@ function PipelineStructGenerator()
   
 
 cache = LRU{Tuple{Any,Any},Any}(maxsize=lru_max_size)
-
 input_cache = LRU{String,InputImage}(maxsize=lru_max_size)
 
 function execute_process(user_model,pipeline,node,inputs::Vector)
@@ -187,8 +186,18 @@ function execute_process(user_model,pipeline,node,inputs::Vector)
 
     # only load image is not in cache
     inputs = [ get!(input_cache,zzinput.img_id) do 
-      @info "user input image loaded "
-      convert(InputImage,zzinput)
+      
+      @warn hasmethod(convert,(Type{InputImage},typeof(zzinput)))
+      if hasmethod(convert,(Type{InputImage},typeof(zzinput)))
+        @info "user input image loaded "
+        convert(InputImage,zzinput)
+      else
+        
+        throw(ArgumentError("Image input not surported for now"))
+      end
+
+
+
     end ]
 
     # update value if necesary
@@ -285,7 +294,11 @@ end
           output_to_keep=out
           output_to_keep_name=""
         end
+        if(length(pipeline.nodes)==1)
+          output_to_keep_name=""
+        end
       catch e
+
         StippleUI.notify(user_model, "Error in pipeline : $e", :negative)
 
         if !(e isa ArgumentError)
@@ -311,8 +324,8 @@ end
       img_id   = old_img_id
       img_name = old_name
     else
-      img_id   = pipeline_name*((process_name!="") ? ("_"*process_name*"_") : "")*"_of_"*old_img_id
-      img_name = pipeline_name*((process_name!="") ? ("_"*process_name*"_") : "")*"_of_"*old_name
+      img_id   = pipeline_name*((process_name!="") ? ("_"*process_name*"_") : "")*""*old_img_id
+      img_name = pipeline_name*((process_name!="") ? ("_"*process_name*"_") : "")*""*old_name
     end
 
     return (img_id,img_name)
