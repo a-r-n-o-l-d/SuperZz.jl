@@ -1,4 +1,6 @@
 
+abstract type AbstractParam end
+
 lru_max_size = 10
 
 # Pileline executor  
@@ -19,8 +21,9 @@ lru_max_size = 10
 
 struct PipelineProcess
         name::String
+        #descption::String
         f::Function
-        Param::DataType
+        Param::Any#DataType{AbstractParam}
         user_param_modifier::Union{Function,Nothing}
         PipelineProcess(n,fn,p,u=nothing) = new(n,fn,p,u)
 end
@@ -30,15 +33,15 @@ end
 function make_process(f::Function,fuser_param_modifier=nothing)
   param = Nothing
   for m in methods(f)
-    if m.sig.parameters[end] <: Param
+    if m.sig.parameters[end] <: AbstractParam
       if param == Nothing
         param=m.sig.parameters[end]
       elseif !(m.sig.parameters[end] isa param)
-        throw("Process function must finish with the same Param type")
+        throw("Process function must finish with the same AbstractParam type")
       end
     else
       @error m.sig
-      throw("Process function must finis with Param type")
+      throw("Process function must finis with AbstractParam type")
     end
 
   end
@@ -92,11 +95,11 @@ function single_process(f::Function,f2=nothing)
 end
 
 
-Stipple.@kwdef mutable struct InputImage
+Stipple.@kwdef mutable struct InputImage{T}
   img_id::String = ""
   img_name::String = ""
 
-  image::Any = Nothing
+  image::T = Nothing
   rois::Dict{String,Any} = Dict{String,Any}()
 end
 
@@ -282,6 +285,7 @@ end
         out = nothing
         last_node = nothing
         for node in pipeline.nodes 
+          @info "test node" objectid(node)
           out = execute_node(user_model,pipeline,node)
           @info "node compare" objectid(node) objectid(exec_node)
           if node === exec_node
@@ -336,9 +340,14 @@ end
     img_id,img_name= get_new_img_id_img_name(pipeline,process_name,old_img_id,old_name)
 
 
-    filename = UPLOAD_PATH*img_id*"V.png"
-    save(filename,image)
-  
+    # FOR now output to png for fast renering on web
+    filename = START_PATH_FOR_MEMORY*img_id*"V.png"
+    buf = IOBuffer()
+    PNGFiles.save(buf, image)
+    data = take!(buf)
+    save(File(filename,data))
+
+
     @info "save $filename with $img_id"
 
     if haskey(user_model.list_image[],img_id)
