@@ -9,11 +9,11 @@
 # end
 
 
-Stipple.@kwdef mutable struct CropParam <: Param
+Stipple.@kwdef mutable struct RoiParam <: AbstractParam
     roi::Roi = Roi()
 end
 
-Stipple.@kwdef mutable struct NoParam <: Param
+Stipple.@kwdef mutable struct NoParam <: AbstractParam
  
 end
 
@@ -25,12 +25,23 @@ Stipple.@kwdef struct DimentionSlider
 
 end
 
-Stipple.@kwdef mutable struct DimentionalParam  <: Param
+Stipple.@kwdef mutable struct DimentionalParam  <: AbstractParam
     dimentions::DimentionSlider = DimentionSlider()
 end
+function erase_roi(input::InputImage,param::RoiParam)
+    roi = input.rois[param.roi.name]
+    @info "crop" input.rois[param.roi.name]
 
+    x = trunc(Int,roi["x"]+1)
+    x2 = x+ trunc(Int,roi["width"]+1)
+    y = trunc(Int,roi["y"]+1)
+    y2 = y+ trunc(Int,roi["height"]+1)
+    input.image[y:y2,x:x2] .= 0
+    return input.image
+end
+single_process(erase_roi)
 
-function crop(input::InputImage,param::CropParam)
+function crop(input::InputImage,param::RoiParam)
     
     roi = input.rois[param.roi.name]
     @info "crop" input.rois[param.roi.name]
@@ -45,11 +56,15 @@ function crop(input::InputImage,param::CropParam)
 end
 single_process(crop)
 
+
+
 function gray(input::InputImage,param::NoParam)
     return Gray.(input.image)
     #return Output(image=input.image[param.roi.y1:param.roi.y2,param.roi.x1:param.roi.x2])
 end
 single_process(gray)
+
+
 
 
 function dimention(image::InputImage,param::DimentionalParam)
@@ -125,7 +140,7 @@ end
 
 single_process(histogram)
 
-Stipple.@kwdef mutable struct BinariseParam <: Param
+Stipple.@kwdef mutable struct BinariseParam <: AbstractParam
     bin::Slider = Slider()
 end
 function binarise(input::InputImage,param::BinariseParam)

@@ -12,10 +12,9 @@ route("/upload", method = POST) do
     arr = []
      for (k,v) in Genie.Requests.filespayload()
   
-       path = UPLOAD_PATH*k # WARNING NO DATAFILTERED
-       open(path, "w") do io
-        write(path, v.data)
-      end
+      path = START_PATH_FOR_MEMORY*k # WARNING NO DATAFILTERED
+      save(File(path,v.data))
+      
       user_model.list_image[][k] = ZzImage(img_id=k,image_path=path,image_version=1,img_name=k)
       push!(user_model)
      end

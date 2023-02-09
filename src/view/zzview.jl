@@ -124,7 +124,7 @@ function image_tabs(user_model,spliter_number)
           q__item__section([
             q__input([],@bind("image.img_name"),dense=""),
 
-          "{{(image.image_path != undefined && image.image_path.startsWith('/dev/shm'))?('in memory'):image.image_path}}"
+          "{{(image.image_path != undefined && image.image_path.startsWith('inmemory'))?('in memory'):image.image_path}}"
           
           
           ],@click("selected_image=image_id"),class="cursor-pointer ",clickable="",v__ripple="")

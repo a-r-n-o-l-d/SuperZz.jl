@@ -1,5 +1,7 @@
 
 
+
+
 Stipple.@kwdef struct Roi
     name::String = ""
 end
@@ -12,7 +14,7 @@ Stipple.@kwdef struct Slider
 end
 
 
-abstract type Param end
+
 
 function flat_reactive_struct(type::DataType,prefix="")
     fields_sub_type = []

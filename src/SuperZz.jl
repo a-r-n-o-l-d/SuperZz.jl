@@ -3,6 +3,8 @@ module SuperZz
 using Stipple
 using GenieFramework
 using FileIO
+using HTTP
+using PNGFiles
 using Images
 #import UUIDs
 import Genie.Renderer.Html: HTMLString, normal_element, register_normal_element
@@ -11,38 +13,15 @@ using LRUCache
 using StatsBase
 
 
-@genietools
-
-@info "SuperZZ Loaded"
-
-Genie.Assets.add_fileroute(StippleUI.assets_config, "konva-viewer.js", basedir = pwd())
-
-const mydiv = Genie.Renderer.Html.div
-const UPLOAD_PATH = "/dev/shm/"
-register_normal_element("q__header",context= @__MODULE__ )
-
-register_normal_element("template",context= @__MODULE__ )
-
-
-include("custom_log.jl")
-include("zzimage.jl")
-include("model.jl")
-
-include("pipeline.jl")
-
-include("visual_pipeline.jl")
-
-
-
-
-
-
-  
+#TODO : faire une vertion window ! !!
+# TODO :  faire UN roi manager avec des ROI SET et un front image
 
 
 # Plugin de test : 
 # Sepapez les cannaux 
 # Filtre gaussien
+
+# ZZ IMAGE SLIDER
 
 # Visialiton : 
 # - slice
@@ -52,7 +31,24 @@ include("visual_pipeline.jl")
 
 # loaded image
 
+@info "SuperZZ Loaded"
 
+Genie.Assets.add_fileroute(StippleUI.assets_config, "konva-viewer.js", basedir = pwd())
+
+const mydiv = Genie.Renderer.Html.div
+
+register_normal_element("q__header",context= @__MODULE__ )
+
+register_normal_element("template",context= @__MODULE__ )
+
+include("memory_files.jl")
+include("custom_log.jl")
+include("zzimage.jl")
+include("model.jl")
+
+include("pipeline.jl")
+
+include("visual_pipeline.jl")
 
 
 
@@ -87,7 +83,9 @@ function demo_image_viewer()
 end
 
 
+
 PipelineStructGenerator()
+
 
 
 @vars Model begin
@@ -148,25 +146,33 @@ end
 
 route("/image") do 
   @info  Genie.Requests.getpayload(:path,"")
-  Genie.Router.serve_file(Genie.Requests.getpayload(:path,""))
+
+  path = Genie.Requests.getpayload(:path,"")
+  if(is_memory_file(path))
+    file = get_file(path)
+
+    serve_file(file)
+  else
+    Genie.Router.serve_file(path)
+  end
 end
 
 
  
 
 function start()
+    @genietools
+  # using Revise
+  # faire fonciotn start and stop 
+  Genie.config.websockets_server = true
+  #GenieAutoReload.autoreload(joinpath(pwd(),"src"),devonly = false)
 
-# using Revise
-# faire fonciotn start and stop 
-Genie.config.websockets_server = true
-#GenieAutoReload.autoreload(joinpath(pwd(),"src"),devonly = false)
+  # with_logger(zz_logger) do 
 
-# with_logger(zz_logger) do 
+  up(async=isinteractive()) # or `up(open_browser = true)` to automatically open a browser window/tab when launching the app
 
- up(async=isinteractive()) # or `up(open_browser = true)` to automatically open a browser window/tab when launching the app
-
-#end
-end
+  #end
+  end
 
 Server.isrunning() || start()
 

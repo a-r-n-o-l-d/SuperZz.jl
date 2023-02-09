@@ -2,7 +2,7 @@ include("html_param.jl")
 
 
 
-function html_param_node(user_model,pipeline,node)
+function process_render(user_model,pipeline,node)
   process=node.process
   @info "generate html for $process"
   paramtype = process.Param
@@ -39,7 +39,7 @@ function pipeline_render(user_model,pipeline)
   
   if pipeline.is_visual || length(pipeline.nodes) == 1
     return      mydiv(class="q-pa-md",[
-      html_param_node(user_model,pipeline,n)
+      process_render(user_model,pipeline,n)
       for n in pipeline.nodes
       ])
   else
@@ -47,7 +47,7 @@ function pipeline_render(user_model,pipeline)
     q__card([
       "PIPELINE : "*pipeline.name,
       mydiv(class="q-pa-md",[
-      html_param_node(user_model,pipeline,n)
+        process_render(user_model,pipeline,n)
       for n in pipeline.nodes
       ]),
   

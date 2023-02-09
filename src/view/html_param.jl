@@ -1,5 +1,8 @@
 
 
+#html_param_items genere le code html pour que l'utisatuer rentre une valeur pour le paramtre d'un pipeline
+
+
 
 function html_param_items(user_model,::Roi,symbol_model,field_name,pipeline,node)
 
