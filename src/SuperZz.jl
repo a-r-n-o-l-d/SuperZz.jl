@@ -13,7 +13,6 @@ using LRUCache
 using StatsBase
 
 
-#TODO : faire une vertion window ! !!
 # TODO :  faire UN roi manager avec des ROI SET et un front image
 
 
@@ -32,24 +31,29 @@ using StatsBase
 # loaded image
 
 @info "SuperZZ Loaded"
-
-Genie.Assets.add_fileroute(StippleUI.assets_config, "konva-viewer.js", basedir = pwd())
+include("custom_log.jl")
 
 const mydiv = Genie.Renderer.Html.div
 
 register_normal_element("q__header",context= @__MODULE__ )
-
 register_normal_element("template",context= @__MODULE__ )
 
+
 include("memory_files.jl")
-include("custom_log.jl")
-include("zzimage.jl")
+
+include("view/zzview.jl")
+
 include("model.jl")
 
-include("pipeline.jl")
+include("plugin.jl")
 
-include("visual_pipeline.jl")
 
+
+# global env structure
+struct Env
+  user_model
+
+end
 
 
 function demo_image()
@@ -84,44 +88,35 @@ end
 
 
 
-PipelineStructGenerator()
-
-
-
 @vars Model begin
    
-    leftDrawerOpen::R{Bool} = true
-    rightDrawerOpen::R{Bool} = true
+    leftDrawerOpen::Bool = true
+    rightDrawerOpen::Bool = true
 
-    image_viewer::R{Vector{Vector{String}}} = demo_image_viewer()
+    image_viewer::Vector{Vector{String}} = demo_image_viewer()
 
-    list_image::R{Dict{String,ZzView}} = demo_image()
+    list_image::Dict{String,ZzView} = demo_image()
 
-    splitter::R{Int} = 100
-    tabs_model::R{Vector{String}} = ["SampleZZ",""]
+    splitter::Int = 100
+    tabs_model::Vector{String} = ["SampleZZ",""]
 
-    tool_selected::R{Dict{String,Any}} = Dict{String,Any}("tool"=>"")
+    tool_selected::Dict{String,Any} = Dict{String,Any}("tool"=>"")
 
-    selected_image::R{String} = ""
-    previous_selected_image::String = ""
+    selected_image::String = ""
 
-    debug::R{String} = ""
 
-    filter::R{String} = ""
+    debug::String = ""
 
-    files_tree::R{Vector{Dict{String,Any}}} = [Dict("label"=>"/","path"=>"/","lazy"=>true)]
-    files_selected::R{String} = ""
+    files_tree::Vector{Dict{String,Any}} = [Dict("label"=>"/","path"=>"/","lazy"=>true)]
+    files_selected::String = ""
 
-    param_image_cache::Dict{String,Any} = Dict{String,Any}() # cache is not reactive
-
-    @mixin PipelineFlat
 end
 
 
 
 
-include("view/zzview.jl")
-include("view/pipeline_view.jl")
+
+
 
 include("remote_file_explorer.jl")
 include("file_upload.jl")
@@ -134,8 +129,12 @@ include("view/custom_method.jl")
 
 include("view/layout.jl")
 
+#custom plugin
+include("pipeline/pipeline_ui.jl")
 
+include("visual_pipeline.jl")
 
+include("test_plugin.jl")
 
 #@page() // for new vertion
 user_model = Stipple.init(Model)
@@ -158,7 +157,8 @@ route("/image") do
 end
 
 
- 
+PLUGIN_ENV = Env(user_model)
+
 
 function start()
     @genietools

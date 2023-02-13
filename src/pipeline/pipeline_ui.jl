@@ -1,0 +1,86 @@
+
+
+include("pipeline_view.jl")
+
+PipelineStructGenerator()
+
+@vars PipelineModel begin
+
+    filter::String = ""
+
+    previous_selected_image::String = "" , NON_REACTIVE
+
+    param_image_cache::Dict{String,Any} = Dict{String,Any}() , NON_REACTIVE # cache is not reactive
+
+    @mixin PipelineFlat 
+
+end
+
+
+
+
+function ui(plugin_model::PipelineModel)
+    user_model = get_user_model()
+    on(user_model.selected_image) do _
+  
+  
+        try
+          for (key, pipe) in all_pipeline()
+            for node in pipe.nodes 
+                process= node.process
+    
+                # save all param for previous_selected_image
+                param = param_generator(plugin_model,pipe.name,process.name,process.Param)
+                if(plugin_model.previous_selected_image != "")
+                    plugin_model.param_image_cache[plugin_model.previous_selected_image*"_"*pipe.name*"_"*process.name] = param
+                end
+                # restore if exist
+                if haskey(plugin_model.param_image_cache,user_model.selected_image[]*"_"*pipe.name*"_"*process.name)
+                  
+                  param_seter(plugin_model,
+                  plugin_model.param_image_cache[user_model.selected_image[]*"_"*pipe.name*"_"*process.name],
+                  pipe.name,process.name
+                  )
+                end
+            end
+          end     
+      
+      catch e 
+          @error "Error in selected_image" exception=(e, catch_backtrace())
+        return nothing
+        end
+    
+    
+    
+        plugin_model.previous_selected_image = user_model.selected_image[]
+    end
+
+    [
+  
+      page(plugin_model,class="container",
+        prepend=[
+
+        #Stipple.Elements.stylesheet("https://cdn.jsdelivr.net/npm/vue-draggable-resizable@2.3.0/dist/VueDraggableResizable.css")
+        ]
+        ,
+       [
+        mydiv(class="column  fit no-wrap justify-between",[
+            pipeline_list(plugin_model),
+           q__card([
+            " Visual param",
+           pipeline_render(plugin_model,VisualPipeLine)
+           ])
+           ]
+          )
+       ])
+  
+    ]
+  
+end
+
+route("/plugin/pipeline") do 
+    plugin_model = Stipple.init(PipelineModel)
+    html(ui(plugin_model), context = @__MODULE__)
+end
+
+push!(PLUGIN_LIST,"pipeline")

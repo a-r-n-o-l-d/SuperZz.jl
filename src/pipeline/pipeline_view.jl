@@ -1,5 +1,6 @@
-include("html_param.jl")
+include("pipeline.jl")
 
+include("html_param.jl")
 
 
 function process_render(user_model,pipeline,node)

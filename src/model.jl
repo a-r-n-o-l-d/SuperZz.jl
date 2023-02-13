@@ -6,7 +6,7 @@ Stipple.@kwdef struct Roi
     name::String = ""
 end
 
-Stipple.@kwdef struct Slider
+Base.@kwdef struct Slider
     v::Float32 = 0
     # function SliderInt{M, Max,Step}(v::Int=0)
     #     new{M, Max,Step}(v)

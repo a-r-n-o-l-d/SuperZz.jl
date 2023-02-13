@@ -1,5 +1,50 @@
 
 
+## ZzView are item diplayed in WebUI
+abstract type  ZzView
+
+end
+
+
+Base.@kwdef mutable struct ZzImage <: ZzView
+    img_id::String =""
+    image_path::String = ""
+    image_version::Int = 0 # to force navigoator to reload image
+  
+    img_visual_path::String = ""
+  
+    img_name::String = ""
+  
+    rois::Dict{String,Any} = Dict{String,Any}()
+    type = "ZzImage"
+  end
+  
+Base.@kwdef mutable struct ZzPlot <: ZzView
+    img_id::String =""
+    data::Vector{Any} = []
+  
+    img_name::String=""
+    type = "ZzPlot"
+  end
+  
+function Base.convert(::Type{T},value::Dict{String, Any}) where {T<:ZzView}
+    try
+      if value["type"] == "ZzImage"
+        ZzImage(; Dict(zip(Symbol.(string.(keys(value))), values(value)))... ) 
+      elseif value["type"] == "ZzPlot"
+        ZzPlot(; Dict(zip(Symbol.(string.(keys(value))), values(value)))... )
+      end
+    catch e
+      @error value
+      @error "convert went wrong" exception=(e, catch_backtrace())
+  
+    end
+    
+end
+
+
+Genie.Assets.add_fileroute(StippleUI.assets_config, "konva-viewer.js", basedir = pwd())
+
 
 register_normal_element("k__viewer",context= @__MODULE__ )
 
@@ -80,39 +125,6 @@ function image_tabs(user_model,spliter_number)
     #   end
       
     # end
-    on(user_model.selected_image) do _
-  
-  
-        try
-          for (key, pipe) in all_pipeline()
-            for node in pipe.nodes 
-                process= node.process
-  
-                # save all param for previous_selected_image
-                param = param_generator(user_model,pipe.name,process.name,process.Param)
-                if(user_model.previous_selected_image != "")
-                user_model.param_image_cache[user_model.previous_selected_image*"_"*pipe.name*"_"*process.name] = param
-                end
-                # restore if exist
-                if haskey(user_model.param_image_cache,user_model.selected_image[]*"_"*pipe.name*"_"*process.name)
-                  
-                  param_seter(user_model,
-                  user_model.param_image_cache[user_model.selected_image[]*"_"*pipe.name*"_"*process.name],
-                  pipe.name,process.name
-                  )
-                end
-            end
-          end     
-      
-      catch e 
-          @error "Error in selected_image" exception=(e, catch_backtrace())
-        return nothing
-        end
-  
-  
-  
-      user_model.previous_selected_image = user_model.selected_image[]
-    end
 
 
     mydiv(class="q-pa-sm",

@@ -32,6 +32,15 @@ function get_file(path)
     end 
 end
 
+function load_from_memory(path)
+    if(is_memory_file(path))
+        # TODO may be wrong format
+        return PNGFiles.load(get_file(path).data)
+      else
+        load(path)
+      end
+end
+
 
 function serve_file(f::File) :: HTTP.Response
 

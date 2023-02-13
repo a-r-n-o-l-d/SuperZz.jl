@@ -104,11 +104,11 @@ Stipple.@kwdef mutable struct InputImage{T}
 end
 
 function Base.convert(::Type{InputImage},zzinput::ZzImage) 
-  InputImage(;img_id=zzinput.img_id,img_name=zzinput.img_name,image=load(zzinput.image_path),rois=zzinput.rois)
+  InputImage(;img_id=zzinput.img_id,img_name=zzinput.img_name,image=load_from_memory(zzinput.image_path),rois=zzinput.rois)
 end
 
 include("test_pipeline.jl")
-
+include("../visual_pipeline.jl")
 
 function pipelines()
     return PLUGIN_DICT
@@ -129,12 +129,12 @@ function PipelineStructGenerator()
             fields_sub_type = flat_reactive_struct(process.Param,string(pipe.name)*"_"*string(process.name)*"_")
         
             push!(fields_sub_type,
-             :($(Symbol(string(pipe.name)*"_"*string(process.name)*"_"*"execute"))::R{Bool}=false)
+             :($(Symbol(string(pipe.name)*"_"*string(process.name)*"_"*"execute"))::R{Bool} = false)
             )
             push!(fields,fields_sub_type...)
         end
         push!(fields,
-        :($(Symbol(string(pipe.name)*"_"*"execute"))::R{Bool}=false)
+        :($(Symbol(string(pipe.name)*"_"*"execute"))::R{Bool} = false)
        )
     end
   
@@ -164,15 +164,7 @@ function PipelineStructGenerator()
   end
   
   
-  function select_image(user_model,pipeline)
-      for (k,v) in user_model.list_image[]
-          if k==user_model.selected_image[]
-              return v
-          end
-        end
-      throw(ArgumentError("No image selected"))
-  end
-  
+
 
 cache = LRU{Tuple{Any,Any},Any}(maxsize=lru_max_size)
 input_cache = LRU{String,InputImage}(maxsize=lru_max_size)
@@ -183,7 +175,7 @@ function execute_process(user_model,pipeline,node,inputs::Vector)
   @info "execute "*string(process.name)*" with $(length(inputs)) args"
 
   if(isempty(inputs))
-    zzinput = select_image(user_model,pipeline)
+    zzinput = zzview_select_by_user()
     @info "Selected image :", zzinput.img_id
     @info "The $(pipeline.name) need user input image "
 
@@ -312,69 +304,18 @@ end
       end
 
     try   
-      zzinput = select_image(user_model,pipeline)
-    add_image_to_model(user_model,pipeline,output_to_keep_name,zzinput.img_id,zzinput.img_name,output_to_keep)
+      zzinput = zzview_select_by_user()
+      if pipeline.is_visual
+        nimg_id,nimg_name = zzinput.img_id,zzinput.img_name
+      else
+        nimg_id,nimg_name = derive_name(pipeline.name*((output_to_keep_name=="") ? ("_"*output_to_keep_name*"_") : ""),zzinput)
+      end
+      add_data_list(nimg_id,nimg_name,output_to_keep,pipeline.is_visual)
   
     catch e
-      StippleUI.notify(user_model, "Error in add_image_to_model : $e", :negative)
-      @error "add_image_to_model went wrong" exception=(e, catch_backtrace())
+      StippleUI.notify(user_model, "Error in add_data_list : $e", :negative)
+      @error "add_data_list went wrong" exception=(e, catch_backtrace())
     end
   
     end
   
-  function get_new_img_id_img_name(pipeline,process_name,old_img_id,old_name)
-    pipeline_name = pipeline.name
-    if pipeline.is_visual
-      img_id   = old_img_id
-      img_name = old_name
-    else
-      img_id   = pipeline_name*((process_name!="") ? ("_"*process_name*"_") : "")*""*old_img_id
-      img_name = pipeline_name*((process_name!="") ? ("_"*process_name*"_") : "")*""*old_name
-    end
-
-    return (img_id,img_name)
-  end
-  function add_image_to_model(user_model,pipeline,process_name,old_img_id,old_name,image)
-  
-
-    img_id,img_name= get_new_img_id_img_name(pipeline,process_name,old_img_id,old_name)
-
-
-    # FOR now output to png for fast renering on web
-    filename = START_PATH_FOR_MEMORY*img_id*"V.png"
-    buf = IOBuffer()
-    PNGFiles.save(buf, image)
-    data = take!(buf)
-    save(File(filename,data))
-
-
-    @info "save $filename with $img_id"
-
-    if haskey(user_model.list_image[],img_id)
-      user_model.list_image[][img_id].image_version+=1
-      if pipeline.is_visual
-        user_model.list_image[][img_id].img_visual_path=filename
-      else
-        user_model.list_image[][img_id].image_path=filename
-      end
-    else
-      user_model.list_image[][img_id] = ZzImage(img_id=img_id,image_path=filename,image_version=1,img_name=img_name)
-    end
-    # updat model on web
-    push!(user_model,:list_image)
-
-    end 
-
-  
-  function add_image_to_model(user_model,pipeline,process_name,old_img_id,old_name,data::Vector{PlotData})
-
-    img_id,img_name= get_new_img_id_img_name(pipeline,process_name,old_img_id,old_name)
-
-    if haskey(user_model.list_image[],img_id)
-        user_model.list_image[][img_id].data=data
-    else
-      user_model.list_image[][img_id] = ZzPlot(img_id=img_id,data=data,img_name=img_name)
-    end
-    # updat model on web
-    push!(user_model,:list_image)
-  end
