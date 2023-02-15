@@ -19,4 +19,4 @@ route("/upload", method = POST) do
       push!(user_model)
      end
      Genie.Renderer.Json.json(arr)
-  end
+end
