@@ -144,7 +144,7 @@ function image_tabs(user_model,spliter_number)
           q__item__section([
             q__btn([],round="",icon="preview",
             @click(
-              "Visual_execute=!Visual_execute;(image_viewer[0].indexOf(image_id)==-1)?(image_viewer[0].push(image_id),tabs_model[0]=image_id):false"
+              "selected_image=image_id;(image_viewer[0].indexOf(image_id)==-1)?(image_viewer[0].push(image_id),tabs_model[0]=image_id):false"
               )
             ),
             q__btn([],round="",icon="close",@click("delete_image(image_id)"))
@@ -182,4 +182,19 @@ function image_tabs(user_model,spliter_number)
   
     ])
     
+  end
+
+
+
+  route("/image") do 
+    @info  Genie.Requests.getpayload(:path,"")
+  
+    path = Genie.Requests.getpayload(:path,"")
+    if(is_memory_file(path))
+      file = get_file(path)
+  
+      serve_file(file)
+    else
+      Genie.Router.serve_file(path)
+    end
   end

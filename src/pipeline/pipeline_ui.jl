@@ -2,6 +2,8 @@
 
 include("pipeline_view.jl")
 
+include("visual_pipeline.jl")
+
 PipelineStructGenerator()
 
 @vars PipelineModel begin
@@ -21,6 +23,20 @@ end
 
 function ui(plugin_model::PipelineModel)
     user_model = get_user_model()
+
+    on(user_model.tabs_model) do test 
+
+      @info "tabs_model update" test
+      for m in get_user_model().tabs_model[]
+          for (k,v) in user_model.list_image[]
+              if k==m
+                  execute_pipeline(plugin_model,VisualPipeLine,nothing,v)
+              end
+          end
+      end
+  
+  end
+
     on(user_model.selected_image) do _
   
   

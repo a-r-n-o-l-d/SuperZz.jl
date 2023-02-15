@@ -132,7 +132,7 @@ include("view/layout.jl")
 #custom plugin
 include("pipeline/pipeline_ui.jl")
 
-include("visual_pipeline.jl")
+
 
 include("test_plugin.jl")
 
@@ -143,18 +143,7 @@ route("/") do
 end
 
 
-route("/image") do 
-  @info  Genie.Requests.getpayload(:path,"")
 
-  path = Genie.Requests.getpayload(:path,"")
-  if(is_memory_file(path))
-    file = get_file(path)
-
-    serve_file(file)
-  else
-    Genie.Router.serve_file(path)
-  end
-end
 
 
 PLUGIN_ENV = Env(user_model)

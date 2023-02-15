@@ -63,7 +63,7 @@ function add_data_list(img_id,img_name,image,is_visual=false)
 
 end
 
-function add_data_list(img_id,img_name,data::Vector{PlotData})
+function add_data_list(img_id,img_name,data::Vector{PlotData},is_visual=false)
 
     if haskey(user_model.list_image[],img_id)
         user_model.list_image[][img_id].data=data

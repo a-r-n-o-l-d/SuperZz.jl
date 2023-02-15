@@ -108,7 +108,7 @@ function Base.convert(::Type{InputImage},zzinput::ZzImage)
 end
 
 include("test_pipeline.jl")
-include("../visual_pipeline.jl")
+include("visual_pipeline.jl")
 
 function pipelines()
     return PLUGIN_DICT
@@ -149,7 +149,6 @@ function PipelineStructGenerator()
   function param_generator(user_model,pipeline_name,process_name,paramtype)
 
     pram = unflat_reactive_struct(paramtype,user_model,string(pipeline_name)*"_"*process_name*"_") 
-    @info "Generate param form user model" param
     return pram
   end
 
@@ -169,13 +168,12 @@ function PipelineStructGenerator()
 cache = LRU{Tuple{Any,Any},Any}(maxsize=lru_max_size)
 input_cache = LRU{String,InputImage}(maxsize=lru_max_size)
 
-function execute_process(user_model,pipeline,node,inputs::Vector)
+function execute_process(user_model,pipeline,node,inputs::Vector,zzinput)
 
   process = node.process
   @info "execute "*string(process.name)*" with $(length(inputs)) args"
 
   if(isempty(inputs))
-    zzinput = zzview_select_by_user()
     @info "Selected image :", zzinput.img_id
     @info "The $(pipeline.name) need user input image "
 
@@ -229,7 +227,7 @@ end
 
 
 
-function execute_node(user_model,pipeline,node::PipelineNode)
+function execute_node(user_model,pipeline,node::PipelineNode,zzinput)
 
 
   if !node.is_dirty_passe
@@ -243,13 +241,13 @@ function execute_node(user_model,pipeline,node::PipelineNode)
                 # if one of my chil is dirty so im I
                 node.is_dirty_passe = true
 
-                execute_node(user_model,pipeline,input_node)
+                execute_node(user_model,pipeline,input_node,zzinput)
             end
             push!(inputs,input_node.cached_data)
    end
 
 
-    output = execute_process(user_model,pipeline,node,inputs)
+    output = execute_process(user_model,pipeline,node,inputs,zzinput)
     node.is_dirty_passe =false
     node.cached_data =output
     return output
@@ -257,7 +255,11 @@ end
 
 
   
-  function execute_pipeline(user_model,pipeline,exec_node=nothing)
+  function execute_pipeline(user_model,pipeline,exec_node=nothing,zzinput = nothing)
+     
+      if zzinput === nothing
+        zzinput = zzview_select_by_user()
+      end
 
       @info "execute "*string(pipeline.name)
       if exec_node!== nothing
@@ -278,7 +280,7 @@ end
         last_node = nothing
         for node in pipeline.nodes 
           @info "test node" objectid(node)
-          out = execute_node(user_model,pipeline,node)
+          out = execute_node(user_model,pipeline,node,zzinput)
           @info "node compare" objectid(node) objectid(exec_node)
           if node === exec_node
               output_to_keep=out
@@ -295,7 +297,7 @@ end
         end
       catch e
 
-        StippleUI.notify(user_model, "Error in pipeline : $e", :negative)
+        StippleUI.notify(PLUGIN_ENV.user_model, "Error in pipeline : $e", :negative)
 
         if !(e isa ArgumentError)
           @error "Error in pipeline" exception=(e, catch_backtrace())
@@ -304,7 +306,6 @@ end
       end
 
     try   
-      zzinput = zzview_select_by_user()
       if pipeline.is_visual
         nimg_id,nimg_name = zzinput.img_id,zzinput.img_name
       else
@@ -313,7 +314,7 @@ end
       add_data_list(nimg_id,nimg_name,output_to_keep,pipeline.is_visual)
   
     catch e
-      StippleUI.notify(user_model, "Error in add_data_list : $e", :negative)
+      StippleUI.notify(PLUGIN_ENV.user_model, "Error in add_data_list : $e", :negative)
       @error "add_data_list went wrong" exception=(e, catch_backtrace())
     end
   

@@ -36,21 +36,10 @@ function main_page(user_model)
     ]
     )
 end
-function plugin_render(user_model,name)
-  return iframe(src = "/plugin/$(name)",style="height: 100%;border:none;")
-end
-function plugin_list(user_model)
-  mydiv( class="overflow-auto fit",
-    [
-      mydiv( 
-        [
-           plugin_render(user_model,p)
-           ]
-      ) for p in PLUGIN_LIST
-    ]
-  )
-  
-end
+
+include("plugin_view.jl")
+
+
 
 function rightmenupage(user_model)
     #style="height = calc(100vw-50px);"
