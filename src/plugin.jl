@@ -2,12 +2,33 @@
 
 # Plugin interface
 
+"""
+To define a new plugin you have to define a route like this
+route("/plugin/pluginname") do 
+  html(..., context = @__MODULE__)
+end
+add_plugin("pluginname")
+
+Two pluign cant have the same name ! 
+
+You can interact with main interface with helper funciton define below
+
+""
+"""
+
+
+"""
+Return the sync model with main web ui
+"""
 function get_user_model()::Model
     global PLUGIN_ENV
     return PLUGIN_ENV.user_model
 end
 
 
+"""
+return the zzview selected by the user
+"""
 function zzview_select_by_user()::ZzView
     user_model = get_user_model()
     for (k,v) in user_model.list_image[]
@@ -18,6 +39,9 @@ function zzview_select_by_user()::ZzView
     throw(ArgumentError("No image selected"))
 end
 
+"""
+Helper funciton to reutrn data from a zzview of given type
+"""
 function load_data(view::ZzView)
     throw("not imlemented")
 end
@@ -74,7 +98,9 @@ function add_data_list(img_id,img_name,data::Vector{PlotData},is_visual=false)
     push!(user_model,:list_image)
   end
 
-
+"""
+Helper funciton to generate a name and image id to a new image form previous one
+"""
 function derive_name(plugin_name,view::ZzView)
     img_id   = plugin_name*""*view.img_id
     img_name = plugin_name*""*view.img_name
@@ -82,6 +108,9 @@ function derive_name(plugin_name,view::ZzView)
     return (img_id,img_name)
   end
 
+"""
+Helper funtion that catch exception and shwo them in log and in popup in main ui web interface
+"""
 function run_pipeline_with_error_check(f)
     try
         f()
@@ -95,5 +124,15 @@ function run_pipeline_with_error_check(f)
     end
 end
 
+""" 
+List of plugin 
+"""
 
 PLUGIN_LIST = []
+
+"""
+  add pluigin to show in main ui wbe interface
+"""
+function add_plugin(name)
+  push!(PLUGIN_LIST,name)
+end

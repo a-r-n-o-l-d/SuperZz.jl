@@ -1,6 +1,11 @@
+
+
+"""
+Define some js html method use is vue js
+"""
 Stipple.js_methods(::Model) = """ lazyload({ node, key, done, fail })
 {
-
+      // Function to fech sub list derectory when on clink on arrow of tree for remote file explorer
       let path = node.path
       fetch('/readdir?path='+path).then(res => res.json()).then(function (data) {
         
@@ -12,6 +17,7 @@ Stipple.js_methods(::Model) = """ lazyload({ node, key, done, fail })
 },
 delete_image(image_id)
 {
+      // Helper fucniton to delete image in list of load image
     Vue.delete(this.list_image, image_id)
     if(this.image_viewer[0].indexOf(image_id)!=-1)
       this.image_viewer[0].slice(this.image_viewer[0].indexOf(image_id))

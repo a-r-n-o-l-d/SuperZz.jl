@@ -1,3 +1,8 @@
+
+
+"""
+Define a remote file explorer html compoant with tree to explore file on serveur
+"""
 function remote_file_opener(user_model)
 
     on(user_model.files_selected) do _
@@ -28,7 +33,10 @@ function remote_file_opener(user_model)
     
   end
 
-
+"""
+Route to get list of file on serveur 
+# Warnign no security !!!
+"""
 route("/readdir") do 
     @info "readir:" Genie.Requests.getpayload(:path,"/")
    

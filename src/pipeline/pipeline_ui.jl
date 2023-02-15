@@ -1,5 +1,7 @@
 
 
+include("model.jl")
+
 include("pipeline_view.jl")
 
 include("visual_pipeline.jl")

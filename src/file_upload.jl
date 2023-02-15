@@ -1,3 +1,8 @@
+"""
+Vue composant and route to upload file
+
+"""
+
 function uploader()
 
     return StippleUI.uploader(class="uploadclass", [],:multiple,:batch,:auto__upload,url="/upload",label="Image upload",  method = "POST", no__thumbnails = true,
@@ -16,7 +21,7 @@ route("/upload", method = POST) do
       save(File(path,v.data))
       
       user_model.list_image[][k] = ZzImage(img_id=k,image_path=path,image_version=1,img_name=k)
-      push!(user_model)
+      push!(user_model.list_image)
      end
      Genie.Renderer.Json.json(arr)
 end

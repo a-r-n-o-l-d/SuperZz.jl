@@ -1,24 +1,34 @@
 
+"""
+ZzView are item diplayed in html web ui
+ -     img_id::String =""
+ -     img_name::String
+ Must be present 
 
-## ZzView are item diplayed in WebUI
+""" 
 abstract type  ZzView
 
 end
 
-
+"""
+ZzImage is define image type to show in web ui
+"""
 Base.@kwdef mutable struct ZzImage <: ZzView
     img_id::String =""
-    image_path::String = ""
+    image_path::String = "" # paht in virtual moeyr or on fielsystem to raw image
     image_version::Int = 0 # to force navigoator to reload image
   
-    img_visual_path::String = ""
+    img_visual_path::String = "" # path to show if image_path is not viewvable
   
-    img_name::String = ""
+    img_name::String = "" # name to print in web ui
   
     rois::Dict{String,Any} = Dict{String,Any}()
     type = "ZzImage"
   end
   
+"""
+ Define a plot to show in web ui on Plotly
+"""
 Base.@kwdef mutable struct ZzPlot <: ZzView
     img_id::String =""
     data::Vector{Any} = []
@@ -42,14 +52,16 @@ function Base.convert(::Type{T},value::Dict{String, Any}) where {T<:ZzView}
     
 end
 
-
+"""
+Add the konva-viewer for iamge
+"""
 Genie.Assets.add_fileroute(StippleUI.assets_config, "konva-viewer.js", basedir = pwd())
-
-
 register_normal_element("k__viewer",context= @__MODULE__ )
 
 
-
+"""
+add a k__viewer to html interface
+"""
 function konvas_render(user_model)
   k__viewer(
     tool_selected! = "tool_selected",
@@ -58,7 +70,9 @@ function konvas_render(user_model)
   )
 end
 
-
+"""
+Generate vue js code to select the viewer mapped to the zzView Type
+"""
 function view_render(user_model)
 
   template([
@@ -77,6 +91,9 @@ function view_render(user_model)
 end
 
 
+"""
+Generate vue js code to manage the spliter in image view
+"""
 function image_tabs(user_model,spliter_number)
 
     mydiv([
@@ -115,8 +132,10 @@ function image_tabs(user_model,spliter_number)
   
   end
 
-
-  function image_list_layout(user_model)
+"""
+Generate code to show a list of zzView load in memeory 
+"""
+function image_list_layout(user_model)
 
     # on(user_model.selected_visual_plugin) do _
     #   if(user_model.selected_image[]!="" && user_model.selected_visual_plugin[]!="")
@@ -185,7 +204,9 @@ function image_tabs(user_model,spliter_number)
   end
 
 
-
+"""
+Route to load image on get hhtp request 
+"""
   route("/image") do 
     @info  Genie.Requests.getpayload(:path,"")
   

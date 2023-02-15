@@ -103,7 +103,11 @@ function page_loyout(user_model)
   end
 
 
+"""
 
+Define main ui layout
+
+"""
 function ui(user_model)
 
 

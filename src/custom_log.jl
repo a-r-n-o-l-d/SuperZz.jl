@@ -1,5 +1,8 @@
 using Logging
 
+"""
+Defini un formater qui affiche le numero de ligne et le fichier pour tout les loglevel ! 
+"""
 function myformater(level::LogLevel, _module, group, id, file, line)
   @nospecialize
   color = Logging.default_logcolor(level)
