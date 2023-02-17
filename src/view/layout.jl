@@ -127,10 +127,7 @@ function ui(user_model)
   
     #Genie.Renderer.Html.script(src = "https://cdn.jsdelivr.net/npm/vue-grid-layout@2.4.0/dist/vue-grid-layout.umd.js"),
   
-    Genie.Renderer.Html.script(src = "https://cdnjs.cloudflare.com/ajax/libs/konva/8.4.2/konva.js"),
-    Genie.Renderer.Html.script(src = "https://unpkg.com/vue-konva@2.1.7/umd/vue-konva.js"),
-  
-    Genie.Renderer.Html.script(src = "/stippleui.jl/master/assets/js/konva-viewer.js"),
+
   
   
     #Genie.Assets.channels_support(), # auto-reload functionality relies on channels

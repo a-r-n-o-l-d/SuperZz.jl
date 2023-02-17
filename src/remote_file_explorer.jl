@@ -33,10 +33,9 @@ function remote_file_opener(user_model)
     
   end
 
-"""
-Route to get list of file on serveur 
+
+#Route to get list of file on serveur 
 # Warnign no security !!!
-"""
 route("/readdir") do 
     @info "readir:" Genie.Requests.getpayload(:path,"/")
    

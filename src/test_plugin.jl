@@ -43,7 +43,7 @@ end
 
 route("/plugin/gray") do 
     plugin_model = Stipple.init(MyVar)
-    html(ui(plugin_model), context = @__MODULE__)
+    ui(plugin_model)
 end
 
 push!(PLUGIN_LIST,"gray")

@@ -1,4 +1,26 @@
 
+"""
+Difnia a plugin that manage pipeline
+
+pipeline are simple chained function that easy add to the interface witout any boilporate code
+
+Sample:
+
+function gray(input::InputImage,param::NoParam)
+    return Gray.(input.image)
+    #return Output(image=input.image[param.roi.y1:param.roi.y2,param.roi.x1:param.roi.x2])
+end
+single_process(gray)
+
+Will genearte and add widget to web ui pipline and when user cliak on run button will can gray
+
+Each funton must finis with a param type param to genearte html code to web ui for ask param to user
+
+
+
+"""
+
+
 
 include("model.jl")
 

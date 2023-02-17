@@ -55,12 +55,12 @@ end
 global_user_model = Stipple.init(Model1)
 route("/end1") do 
 
-  html(ui(global_user_model), context = @__MODULE__)
+  ui(global_user_model)
 end
 
 route("/end2") do 
     local_user_model = Stipple.init(Model2)
-    html(ui(local_user_model), context = @__MODULE__)
+    ui(local_user_model)
 end
   
 

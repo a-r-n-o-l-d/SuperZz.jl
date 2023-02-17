@@ -40,9 +40,7 @@ include("custom_log.jl")
 """
 const mydiv = Genie.Renderer.Html.div
 
-"""
-    permet de d'ulister des balise html non definie dans genis par default
-"""
+#    permet de d'ulister des balise html non definie dans genis par default
 register_normal_element("q__header",context= @__MODULE__ )
 register_normal_element("template",context= @__MODULE__ )
 
@@ -111,7 +109,7 @@ Main data exachege with main web ui vue.js app
     splitter::Int = 100 # spliter proporitn between two image
     tabs_model::Vector{String} = ["SampleZZ",""] # what iamge are show in each spliter
 
-    tool_selected::Dict{String,Any} = Dict{String,Any}("tool"=>"") # TODO do no work 
+
 
     selected_image::String = "" # iamge selected by user
 
@@ -145,7 +143,7 @@ include("test_plugin.jl")
 """
 user_model = Stipple.init(Model)
 route("/") do 
-  html(ui(user_model), context = @__MODULE__)
+  ui(user_model)
 end
 
 """

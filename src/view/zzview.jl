@@ -23,6 +23,8 @@ Base.@kwdef mutable struct ZzImage <: ZzView
     img_name::String = "" # name to print in web ui
   
     rois::Dict{String,Any} = Dict{String,Any}()
+
+    
     type = "ZzImage"
   end
   
@@ -52,42 +54,46 @@ function Base.convert(::Type{T},value::Dict{String, Any}) where {T<:ZzView}
     
 end
 
-"""
-Add the konva-viewer for iamge
-"""
-Genie.Assets.add_fileroute(StippleUI.assets_config, "konva-viewer.js", basedir = pwd())
-register_normal_element("k__viewer",context= @__MODULE__ )
 
 
-"""
-add a k__viewer to html interface
-"""
-function konvas_render(user_model)
-  k__viewer(
-    tool_selected! = "tool_selected",
-    src! = "'/image?path='+((list_image[image_str].img_visual_path)?list_image[image_str].img_visual_path:list_image[image_str].image_path)+'&v='+list_image[image_str].image_version",
-    var"v-model"="list_image[image_str].rois",
-  )
+include("../viewer/kviewer/kviewer.jl")
+#include("../viewer/pl/kviewer.jl")
+
+
+function multi_dimentional_view_tool(user_model)
+
 end
+
+
+
+# template([
+#   # StippleUI.imageview([],alt = "Format not suported",@iif("list_image[image_str].type==\"ZzImage\"");
+#   # src! = "'/image?path='+((list_image[image_str].img_visual_path)?list_image[image_str].img_visual_path:list_image[image_str].image_path)+'&v='+list_image[image_str].image_version",  
+#   # ),
+#   template([konvas_render(user_model)],@iif("list_image[image_str].type==\"ZzImage\""))
+#   ,
+#   #
+#   StipplePlotly.plot("removeEmpty(list_image[image_str].data)",layout =  PlotLayout(plot_bgcolor = "#333", title = PlotLayoutTitle(text = "Random numbers", font = Font(24))),config =  PlotConfig(),
+
+#   @iif("list_image[image_str].type==\"ZzPlot\"") 
+#   )
+#   ]
+#   )
+
 
 """
 Generate vue js code to select the viewer mapped to the zzView Type
 """
 function view_render(user_model)
 
-  template([
-  # StippleUI.imageview([],alt = "Format not suported",@iif("list_image[image_str].type==\"ZzImage\"");
-  # src! = "'/image?path='+((list_image[image_str].img_visual_path)?list_image[image_str].img_visual_path:list_image[image_str].image_path)+'&v='+list_image[image_str].image_version",  
-  # ),
-  template([konvas_render(user_model)],@iif("list_image[image_str].type==\"ZzImage\""))
-  ,
-  #
-  StipplePlotly.plot("removeEmpty(list_image[image_str].data)",layout =  PlotLayout(plot_bgcolor = "#333", title = PlotLayoutTitle(text = "Random numbers", font = Font(24))),config =  PlotConfig(),
+  return mydiv([iframe(
+  frameborder="0",  
+  src! = "'/plugin/'+list_image[image_str].type+'?img_id='+image_str",
+  style="height: 100%;width:100%;border:none;")
+  ],
+  style = "height:100%;"
+  )
 
-  @iif("list_image[image_str].type==\"ZzPlot\"") 
-  )
-  ]
-  )
 end
 
 
@@ -115,18 +121,18 @@ function image_tabs(user_model,spliter_number)
           ],@recur("(image_str,index) in image_viewer[$spliter_number]"),name! = "list_image[image_str].img_id", key! = "list_image[image_str].img_id", @click(""))
   
         ],@bind("tabs_model[$spliter_number]"),dense="",narrow__indicator=""),
-        q__tab__panels(
-          [
-            q__tab__panel([
+         q__tab__panels(
+           [
+             q__tab__panel([
   
             view_render(user_model)
   
             ],@click("selected_image=list_image[image_str].img_id"),key! = "list_image[image_str].img_id",@recur("image_str in image_viewer[$spliter_number]"),name! = "list_image[image_str].img_id"),
   
-            q__tab__panel(["Select a iamge in tab"],name! ="''")
-          ],
-          @bind("tabs_model[$spliter_number]"),animated=""
-        )
+             q__tab__panel(["Select a iamge in tab"],name! ="''")
+           ],
+           @bind("tabs_model[$spliter_number]"),animated=""
+         )
   
     ])
   
@@ -203,11 +209,8 @@ function image_list_layout(user_model)
     
   end
 
-
-"""
-Route to load image on get hhtp request 
-"""
-  route("/image") do 
+#Route to load image on get hhtp request 
+route("/image") do 
     @info  Genie.Requests.getpayload(:path,"")
   
     path = Genie.Requests.getpayload(:path,"")

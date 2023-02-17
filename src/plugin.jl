@@ -5,7 +5,7 @@
 """
 To define a new plugin you have to define a route like this
 route("/plugin/pluginname") do 
-  html(..., context = @__MODULE__)
+  ui(...)
 end
 add_plugin("pluginname")
 
@@ -136,3 +136,4 @@ PLUGIN_LIST = []
 function add_plugin(name)
   push!(PLUGIN_LIST,name)
 end
+
