@@ -115,7 +115,7 @@ function pipelines()
   end
 
 function all_pipeline()
-  return merge(pipelines(),Dict("visual"=>VisualPipeLine))
+  return pipelines()
   
 end
 

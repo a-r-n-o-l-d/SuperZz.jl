@@ -138,10 +138,26 @@ include("pipeline/pipeline_ui.jl")
 # add a test plugiin 
 include("test_plugin.jl")
 
+
+Genie.Assets.add_fileroute(StippleUI.assets_config, "iframe.js", basedir = pwd())
+
+function deps_superzz() :: Vector{String}
+  [
+
+    
+      Genie.Renderer.Html.script(src = "/stippleui.jl/master/assets/js/iframe.js"),
+  ]
+end
+
+
+
+
 """
  Create Model for sync data with vue js
 """
 user_model = Stipple.init(Model)
+Stipple.deps!("iframe", deps_superzz)
+
 route("/") do 
   ui(user_model)
 end

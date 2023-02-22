@@ -58,7 +58,7 @@ end
 
 include("../viewer/kviewer/kviewer.jl")
 #include("../viewer/pl/kviewer.jl")
-
+include("../viewer/plotviewer/plotviewer.jl")
 
 function multi_dimentional_view_tool(user_model)
 
@@ -66,19 +66,7 @@ end
 
 
 
-# template([
-#   # StippleUI.imageview([],alt = "Format not suported",@iif("list_image[image_str].type==\"ZzImage\"");
-#   # src! = "'/image?path='+((list_image[image_str].img_visual_path)?list_image[image_str].img_visual_path:list_image[image_str].image_path)+'&v='+list_image[image_str].image_version",  
-#   # ),
-#   template([konvas_render(user_model)],@iif("list_image[image_str].type==\"ZzImage\""))
-#   ,
-#   #
-#   StipplePlotly.plot("removeEmpty(list_image[image_str].data)",layout =  PlotLayout(plot_bgcolor = "#333", title = PlotLayoutTitle(text = "Random numbers", font = Font(24))),config =  PlotConfig(),
-
-#   @iif("list_image[image_str].type==\"ZzPlot\"") 
-#   )
-#   ]
-#   )
+#
 
 
 """
@@ -88,8 +76,10 @@ function view_render(user_model)
 
   return mydiv([iframe(
   frameborder="0",  
-  src! = "'/plugin/'+list_image[image_str].type+'?img_id='+image_str",
-  style="height: 100%;width:100%;border:none;")
+  src! = "'plugin/'+list_image[image_str].type+'?img_id='+image_str",
+  class = "gh-fit",
+  style = "width:100%;"
+  )
   ],
   style = "height:100%;"
   )
@@ -121,17 +111,19 @@ function image_tabs(user_model,spliter_number)
           ],@recur("(image_str,index) in image_viewer[$spliter_number]"),name! = "list_image[image_str].img_id", key! = "list_image[image_str].img_id", @click(""))
   
         ],@bind("tabs_model[$spliter_number]"),dense="",narrow__indicator=""),
-         q__tab__panels(
+         mydiv(
            [
              q__tab__panel([
   
             view_render(user_model)
   
-            ],@click("selected_image=list_image[image_str].img_id"),key! = "list_image[image_str].img_id",@recur("image_str in image_viewer[$spliter_number]"),name! = "list_image[image_str].img_id"),
+            ],name = "test",
+            v__show = "tabs_model[$spliter_number]==list_image[image_str].img_id"          ,  
+            @click("selected_image=list_image[image_str].img_id"),key! = "list_image[image_str].img_id",
+            @recur("image_str in image_viewer[$spliter_number]")),
   
              q__tab__panel(["Select a iamge in tab"],name! ="''")
            ],
-           @bind("tabs_model[$spliter_number]"),animated=""
          )
   
     ])

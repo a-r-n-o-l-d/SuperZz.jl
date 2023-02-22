@@ -48,21 +48,22 @@ end
 function ui(plugin_model::PipelineModel)
     user_model = get_user_model()
 
-    on(user_model.tabs_model) do test 
+#     on(user_model.tabs_model) do test 
 
-      @info "tabs_model update" test
-      for m in get_user_model().tabs_model[]
-          for (k,v) in user_model.list_image[]
-              if k==m
-                  execute_pipeline(plugin_model,VisualPipeLine,nothing,v)
-              end
-          end
-      end
+#       @info "tabs_model update" test
+#       for m in get_user_model().tabs_model[]
+#           for (k,v) in user_model.list_image[]
+#               if k==m
+#                   execute_pipeline(plugin_model,VisualPipeLine,nothing,v)
+#               end
+#           end
+#       end
   
-  end
+#   end
 
     on(user_model.selected_image) do _
   
+        @info "pipeline event on selected_image"
   
         try
           for (key, pipe) in all_pipeline()
@@ -106,10 +107,7 @@ function ui(plugin_model::PipelineModel)
        [
         mydiv(class="column  fit no-wrap justify-between",[
             pipeline_list(plugin_model),
-           q__card([
-            " Visual param",
-           pipeline_render(plugin_model,VisualPipeLine)
-           ])
+
            ]
           )
        ])

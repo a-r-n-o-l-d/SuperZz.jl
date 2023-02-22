@@ -84,7 +84,7 @@ function add_data_list(img_id,img_name,image,is_visual=false)
     end
     # updat model on web
     push!(user_model,:list_image)
-
+    notify(user_model.list_image)
 end
 
 function add_data_list(img_id,img_name,data::Vector{PlotData},is_visual=false)
@@ -96,6 +96,7 @@ function add_data_list(img_id,img_name,data::Vector{PlotData},is_visual=false)
     end
     # updat model on web
     push!(user_model,:list_image)
+    notify(user_model.list_image)
   end
 
 """

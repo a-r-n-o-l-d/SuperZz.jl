@@ -23,7 +23,7 @@ if the number of file are garther than MAX_NBR_MEMORY_FILE the older file are dr
 """
 File_MEMORY = LRU{String,File}(maxsize=MAX_NBR_MEMORY_FILE)
 
-
+physical_CACHE = LRU{String,Any}(maxsize=MAX_NBR_MEMORY_FILE)
 
 """
 save file in virtual memor or in file sysmtem
@@ -57,7 +57,9 @@ function load_from_memory(path)
         # TODO may be wrong format
         return PNGFiles.load(get_file(path).data)
       else
-        load(path)
+        get!(physical_CACHE,path) do 
+            load(path)
+        end
       end
 end
 
