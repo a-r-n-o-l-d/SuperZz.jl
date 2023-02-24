@@ -92,8 +92,8 @@ Generate vue js code to manage the spliter in image view
 """
 function image_tabs(user_model,spliter_number)
 
-    mydiv([
-        q__tabs([
+    mydiv(class="fit column",[
+        q__tabs(class="",[
   
           q__tab([
             mydiv(class="row  items-center",[
@@ -111,18 +111,18 @@ function image_tabs(user_model,spliter_number)
           ],@recur("(image_str,index) in image_viewer[$spliter_number]"),name! = "list_image[image_str].img_id", key! = "list_image[image_str].img_id", @click(""))
   
         ],@bind("tabs_model[$spliter_number]"),dense="",narrow__indicator=""),
-         mydiv(
+         mydiv(class="col-grow",
            [
-             q__tab__panel([
+             q__tab__panel(style="height:100%;",[
   
+            q__scroll__area(class="fit",[
             view_render(user_model)
+            ])
   
             ],name = "test",
             v__show = "tabs_model[$spliter_number]==list_image[image_str].img_id"          ,  
             @click("selected_image=list_image[image_str].img_id"),key! = "list_image[image_str].img_id",
             @recur("image_str in image_viewer[$spliter_number]")),
-  
-             q__tab__panel(["Select a iamge in tab"],name! ="''")
            ],
          )
   
@@ -161,7 +161,7 @@ function image_list_layout(user_model)
           q__item__section([
             q__btn([],round="",icon="preview",
             @click(
-              "selected_image=image_id;(image_viewer[0].indexOf(image_id)==-1)?(image_viewer[0].push(image_id),tabs_model[0]=image_id):false"
+              "(image_viewer[0].indexOf(image_id)==-1)?(image_viewer[0].push(image_id),tabs_model[0]=image_id):false"
               )
             ),
             q__btn([],round="",icon="close",@click("delete_image(image_id)"))

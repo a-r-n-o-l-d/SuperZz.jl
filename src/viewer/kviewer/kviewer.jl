@@ -90,15 +90,25 @@ function html_slider(plugin_model)
 function update_image(plugin_model,img_id)
     user_model = get_user_model()
     try
+        src = "" 
         if(isempty(user_model.list_image[][img_id].img_visual_path))
-            plugin_model.src[]="/image?path="*user_model.list_image[][img_id].image_path
+            src="/image?path="*user_model.list_image[][img_id].image_path
         else
-            plugin_model.src[]="/image?path="*user_model.list_image[][img_id].img_visual_path
+            src="/image?path="*user_model.list_image[][img_id].img_visual_path
         end
-        plugin_model.src[] *= "&v=" * string(user_model.list_image[][img_id].image_version)
+        src *= "&v=" * string(user_model.list_image[][img_id].image_version)
 
-        plugin_model.rois[] = user_model.list_image[][img_id].rois
-        push!(plugin_model)
+        #if src != plugin_model.src[]
+            plugin_model.src[] = src
+        #end
+
+        if plugin_model.rois[] != user_model.list_image[][img_id].rois
+            plugin_model.rois[] = user_model.list_image[][img_id].rois
+                    #push!(plugin_model)
+        end
+
+
+
     catch e
         @error "isready went wrong" exception=(e, catch_backtrace())
 
@@ -128,6 +138,10 @@ function konvas_render(img_id,plugin_model)
      update_image(plugin_model,img_id)
   end
   
+  on(um.list_image) do _
+    @info "list_image is update may this one two"
+      update_image(plugin_model,img_id)
+   end
 
   mydiv(class= "col",
   [
@@ -162,7 +176,7 @@ route("/plugin/ZzImage/") do
     img_id =  Genie.Requests.getpayload(:img_id,"/")
     plugin_model = Stipple.init(KViewerVar)
 
-
+    update_image(plugin_model,img_id)
 
 
     page(plugin_model,class="container",

@@ -105,10 +105,8 @@ function ui(plugin_model::PipelineModel)
         ]
         ,
        [
-        mydiv(class="column  fit no-wrap justify-between",[
+        mydiv(class="column  no-wrap ",
             pipeline_list(plugin_model),
-
-           ]
           )
        ])
   

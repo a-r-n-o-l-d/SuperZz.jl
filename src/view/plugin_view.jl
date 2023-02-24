@@ -1,17 +1,18 @@
 function plugin_render(user_model,name)
-    return iframe(src = "/plugin/$(name)",style="height: 100%;border:none;")
+    return iframe(src = "/plugin/$(name)",style="border:none;",class="gh-fit")
   end
 
 
 function plugin_list(user_model)
-    mydiv( class="overflow-auto fit",
+    mydiv( class="column no-wrap",
       [
-        mydiv( 
-          [
+
              plugin_render(user_model,p)
-             ]
-        ) for p in PLUGIN_LIST
+             #mydiv(["Empty div"],style="height:500px;")
+             
+         for p in Iterators.reverse(PLUGIN_LIST)
       ]
+      
     )
     
   end

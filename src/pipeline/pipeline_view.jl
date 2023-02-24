@@ -60,7 +60,6 @@ function pipeline_render(user_model,pipeline)
 
 
 function pipeline_list(user_model)
-    mydiv(class="fit overflow-auto",
     [
       q__input([],filled = "",label = "Filter" ,@bind("filter")),
       mydiv(
@@ -74,6 +73,4 @@ function pipeline_list(user_model)
   
   
     ]
-  
-    )
   end

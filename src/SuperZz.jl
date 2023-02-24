@@ -13,8 +13,6 @@ using LRUCache
 using StatsBase
 
 
-# 1) les commentaire
-
 #2) Visialiton : 
 # - slice
 # - LUT 
