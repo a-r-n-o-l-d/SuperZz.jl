@@ -16,7 +16,6 @@ using StatsBase
 #2) Visialiton : 
 # - slice
 # - LUT 
-# ZZ IMAGE SLIDER
 # affihcer les metadata si existe
 
 # TODO :  faire UN roi manager avec des ROI SET et un front image

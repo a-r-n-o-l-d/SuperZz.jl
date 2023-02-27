@@ -7,16 +7,16 @@ register_normal_element("k__viewer",context= @__MODULE__ )
 
 
 @vars KViewerVar begin
-    src::String = ""
-    rois::Dict{String,Any} = Dict{String,Any}()
-    tool_selected::Dict{String,Any} = Dict{String,Any}("tool"=>"") # TODO do no work 
+    src::R{String} = ""
+    rois::R{Dict{String,Any}} = Dict{String,Any}()
+    tool_selected::R{Dict{String,Any}} = Dict{String,Any}("tool"=>"") # TODO do no work 
 
 
 
-    slide_v::Vector{Int} = [1]
-    slide_step_v::Vector{Int} = [1]
-    slide_min_v::Vector{Int} =  [1]
-    slide_max_v::Vector{Int} = [1]
+    slide_v::R{Vector{Int}} = [1]
+    slide_step_v::R{Vector{Int}} = [1]
+    slide_min_v::R{Vector{Int}} =  [1]
+    slide_max_v::R{Vector{Int}} = [1]
 
 
 
@@ -61,7 +61,7 @@ function dimention_getter(plugin_model,plugin_model2)
     end
 
     
-    #push!(user_model)
+    #push!(plugin_model)
 end
 
 function slider_extract(plugin_model,plugin_model2)
@@ -122,8 +122,15 @@ function konvas_render(img_id,plugin_model)
 
   um = get_user_model()
 
-  @async begin
+
+
+
+  on(plugin_model.isready)  do isready
+     isready || return 
+     update_image(plugin_model,img_id)
+
     plugin_model2 = userdata(load_data(um.list_image[][img_id]),um.list_image[][img_id])
+
     dimention_getter(plugin_model,plugin_model2)
 
     slider_extract(plugin_model,plugin_model2)
@@ -131,11 +138,7 @@ function konvas_render(img_id,plugin_model)
         @info "slider is update"
         slider_extract(plugin_model,plugin_model2)
     end
-  end 
 
-  on(plugin_model.isready)  do isready
-     isready || return 
-     update_image(plugin_model,img_id)
   end
   
   on(um.list_image) do _
