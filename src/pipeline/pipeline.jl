@@ -168,13 +168,13 @@ function PipelineStructGenerator()
 cache = LRU{Tuple{Any,Any},Any}(maxsize=lru_max_size)
 input_cache = LRU{String,InputImage}(maxsize=lru_max_size)
 
-function execute_process(user_model,pipeline,node,inputs::Vector,zzinput)
+function execute_process(user_model,pipeline,node,inputs::Vector,zzinputs)
 
   process = node.process
   @info "execute "*string(process.name)*" with $(length(inputs)) args"
 
   if(isempty(inputs))
-    @info "Selected image :", zzinput.img_id
+    @info "Selected image :", [ zzinput.img_id for zzinput in zzinputs]
     @info "The $(pipeline.name) need user input image "
 
     # only load image is not in cache
@@ -191,15 +191,15 @@ function execute_process(user_model,pipeline,node,inputs::Vector,zzinput)
 
 
 
-    end ]
+    end for zzinput in zzinputs ]
 
     # update value if necesary
-    if(inputs[1].img_name != zzinput.img_name )
-      inputs[1].img_name = zzinput.img_name
+    if(inputs[1].img_name != zzinputs[1].img_name )
+      inputs[1].img_name = zzinputs[1].img_name
     end
     
-    if(inputs[1].rois != zzinput.rois )
-        inputs[1].rois = zzinput.rois
+    if(inputs[1].rois != zzinputs[1].rois )
+        inputs[1].rois = zzinputs[1].rois
     end
 
   end
@@ -255,68 +255,70 @@ end
 
 
   
-  function execute_pipeline(user_model,pipeline,exec_node=nothing,zzinput = nothing)
+  function execute_pipeline(user_model,pipeline,exec_node=nothing,zzinputs = nothing)
      
-      if zzinput === nothing
-        zzinput = zzview_select_by_user()
+      if zzinputs === nothing
+        zzinputs = zzview_select_by_user()
       end
 
-      @info "execute "*string(pipeline.name)
-      if exec_node!== nothing
-       @info "with process="*exec_node.process.name    
-      end
-    
+      for zzinput in zzinputs
+        @info "execute "*string(pipeline.name)
+        if exec_node!== nothing
+        @info "with process="*exec_node.process.name    
+        end
+      
 
-      output_to_keep  = nothing
-      output_to_keep_name  = ""
+        output_to_keep  = nothing
+        output_to_keep_name  = ""
 
-      # reset node execution
-      for node in pipeline.nodes 
-        node.is_dirty_passe=true
-      end
-
-      try
-        out = nothing
-        last_node = nothing
+        # reset node execution
         for node in pipeline.nodes 
-          @info "test node" objectid(node)
-          out = execute_node(user_model,pipeline,node,zzinput)
-          @info "node compare" objectid(node) objectid(exec_node)
-          if node === exec_node
-              output_to_keep=out
-              output_to_keep_name=node.process.name
+          node.is_dirty_passe=true
+        end
+
+        try
+          out = nothing
+          last_node = nothing
+          for node in pipeline.nodes 
+            @info "test node" objectid(node)
+            out = execute_node(user_model,pipeline,node,[zzinput])
+            @info "node compare" objectid(node) objectid(exec_node)
+            if node === exec_node
+                output_to_keep=out
+                output_to_keep_name=node.process.name
+            end
+            last_node= node
           end
-          last_node= node
-        end
-        if output_to_keep===nothing
-          output_to_keep=out
-          output_to_keep_name=""
-        end
-        if(length(pipeline.nodes)==1)
-          output_to_keep_name=""
-        end
-      catch e
+          if output_to_keep===nothing
+            output_to_keep=out
+            output_to_keep_name=""
+          end
+          if(length(pipeline.nodes)==1)
+            output_to_keep_name=""
+          end
+        catch e
 
-        StippleUI.notify(PLUGIN_ENV.user_model, "Error in pipeline : $e", :negative)
+          StippleUI.notify(PLUGIN_ENV.user_model, "Error in pipeline : $e", :negative)
 
-        if !(e isa ArgumentError)
-          @error "Error in pipeline" exception=(e, catch_backtrace())
+          if !(e isa ArgumentError)
+            @error "Error in pipeline" exception=(e, catch_backtrace())
+          end
+          return nothing
         end
-        return nothing
+
+        try   
+          if pipeline.is_visual
+            nimg_id,nimg_name = zzinput[].img_id,zzinput.img_name
+          else
+            nimg_id,nimg_name = derive_name(pipeline.name*((output_to_keep_name=="") ? ("_"*output_to_keep_name*"_") : ""),zzinput)
+          end
+          add_data_list(nimg_id,nimg_name,output_to_keep,pipeline.is_visual)
+      
+        catch e
+          StippleUI.notify(PLUGIN_ENV.user_model, "Error in add_data_list : $e", :negative)
+          @error "add_data_list went wrong" exception=(e, catch_backtrace())
+        end
       end
-
-    try   
-      if pipeline.is_visual
-        nimg_id,nimg_name = zzinput.img_id,zzinput.img_name
-      else
-        nimg_id,nimg_name = derive_name(pipeline.name*((output_to_keep_name=="") ? ("_"*output_to_keep_name*"_") : ""),zzinput)
-      end
-      add_data_list(nimg_id,nimg_name,output_to_keep,pipeline.is_visual)
-  
-    catch e
-      StippleUI.notify(PLUGIN_ENV.user_model, "Error in add_data_list : $e", :negative)
-      @error "add_data_list went wrong" exception=(e, catch_backtrace())
-    end
   
     end
   

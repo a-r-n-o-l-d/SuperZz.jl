@@ -3,6 +3,7 @@ module SuperZz
 using Stipple
 using GenieFramework
 using FileIO
+using ImageMetadata
 using HTTP
 using PNGFiles
 using Images
@@ -13,12 +14,20 @@ using LRUCache
 using StatsBase
 
 
-#2) Visialiton : 
-# - slice
-# - LUT 
-# affihcer les metadata si existe
+# TODO : 
+
+# 1)
+
+# Selection ? => RoiSet
+
+# affiche run roi sur une image
+
+# rajotue le type RoiSet 
+
 
 # TODO :  faire UN roi manager avec des ROI SET et un front image
+
+# 
 
 # Plugin de test : 
 # Sepapez les cannaux 
@@ -107,8 +116,11 @@ Main data exachege with main web ui vue.js app
     tabs_model::Vector{String} = ["SampleZZ",""] # what iamge are show in each spliter
 
 
+    filterimage::String = "" # iamge selected by user
+    filterimagetype::String = "" # iamge selected by user
 
-    selected_image::String = "" # iamge selected by user
+
+    selected_image::Vector{String} = Vector{String}() # iamge selected by user
 
 
     debug::String = "" # show string to debug 

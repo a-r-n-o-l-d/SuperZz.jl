@@ -2,12 +2,14 @@
 
 function ran()
     run_pipeline_with_error_check() do 
-        zz_image = zzview_select_by_user()
-        image = load_data(zz_image)
+        zz_images = zzview_select_by_user()
+        for zz_image in zz_image
+            image = load_data(zz_image)
 
-        image = Gray.(image)
+            image = Gray.(image)
 
-        add_data_list(derive_name("Plugin_crroper",zz_image)...,image)
+            add_data_list(derive_name("Plugin_crroper",zz_image)...,image)
+        end
     end
 end
 

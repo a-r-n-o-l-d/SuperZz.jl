@@ -120,8 +120,11 @@ function image_tabs(user_model,spliter_number)
             ])
   
             ],name = "test",
-            v__show = "tabs_model[$spliter_number]==list_image[image_str].img_id"          ,  
-            @click("selected_image=list_image[image_str].img_id"),key! = "list_image[image_str].img_id",
+            v__show = "tabs_model[$spliter_number]==list_image[image_str].img_id"   
+                   ,  
+            @click("select_image_id(image_str)")
+            
+            ,key! = "list_image[image_str].img_id",
             @recur("image_str in image_viewer[$spliter_number]")),
            ],
          )
@@ -146,6 +149,12 @@ function image_list_layout(user_model)
 
     mydiv(class="q-pa-sm",
     [
+
+      mydiv(class="row no-wrap",[
+      q__input(class= "q-pr-xs",dense! ="true",[],filled = "",label = "Filter" ,@bind("filterimage"))
+      ,
+      q__input(class= "q-pl-xs",dense! ="true",[],filled = "",label = "Type" ,@bind("filterimagetype"))
+      ]),
       q__list([
   
         q__item(
@@ -153,10 +162,11 @@ function image_list_layout(user_model)
           q__item__section([
             q__input([],@bind("image.img_name"),dense=""),
 
-          "{{(image.image_path != undefined && image.image_path.startsWith('inmemory'))?('in memory'):image.image_path}}"
+          mydiv(["{{(image.image_path != undefined && image.image_path.startsWith('inmemory'))?('in memory'):image.image_path}}"]),
+          mydiv(["{{ image.type  }}"])
           
           
-          ],@click("selected_image=image_id"),class="cursor-pointer ",clickable="",v__ripple="")
+          ],@click("select_image_id(image_id)"),class="cursor-pointer ",clickable="",v__ripple="")
   
           q__item__section([
             q__btn([],round="",icon="preview",
@@ -168,12 +178,14 @@ function image_list_layout(user_model)
   
             
             ],avatar="")
-        ]
+        ],
+        var"v-show"="""(image.img_name.toLowerCase().indexOf(filterimage.toLowerCase())>-1)
+        && (image.type.toLowerCase().indexOf(filterimagetype.toLowerCase())>-1)"""
         ,
         key! = "image_id"
         ,
         @recur("(image,image_id) in list_image"),
-        active! ="selected_image === image_id",
+        active! ="selected_image.includes(image_id)",
         active__class="active-link",
         )
   
@@ -208,7 +220,9 @@ route("/image") do
     path = Genie.Requests.getpayload(:path,"")
     if(is_memory_file(path))
       file = get_file(path)
-  
+      if file===false
+        error("not found", Genie.Router.response_mime(), Val(404))        
+      end
       serve_file(file)
     else
       Genie.Router.serve_file(path)

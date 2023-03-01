@@ -13,6 +13,9 @@ register_normal_element("k__viewer",context= @__MODULE__ )
 
 
 
+
+    properties::R{Dict{String,Any}} = Dict{String,Any}()
+
     slide_v::R{Vector{Int}} = [1]
     slide_step_v::R{Vector{Int}} = [1]
     slide_min_v::R{Vector{Int}} =  [1]
@@ -25,6 +28,20 @@ end
 Stipple.@kwredef struct userdata
     image::Any = nothing 
     zzimage::ZzImage = ZzImage()
+end
+
+function properties_extract(plugin_model,plugin_model2)
+    image = plugin_model2.image
+    if hasmethod(properties,Tuple{typeof(image)})
+
+        prop = Dict{String,Any}()
+        for (k,v) in  properties(image)
+            if(!isnothing(v))
+                prop[String(k)] = v
+            end
+        end
+        plugin_model.properties[] = prop
+    end
 end
 
 
@@ -74,7 +91,7 @@ end
 function html_slider(plugin_model)
 
     
-    return q__slider([],min! ="slide_min_v[index]",max! ="slide_max_v[index]" ,
+    return q__slider(class="q-pa-md",[],min! ="slide_min_v[index]",max! ="slide_max_v[index]" ,
     step! ="slide_step_v[index]",
     label = "",
     label__always = "",
@@ -85,7 +102,11 @@ function html_slider(plugin_model)
     )
   end
 
+  function html_properties(plugin_model)
 
+    
+    return mydiv(["{properties}"])
+  end
 
 function update_image(plugin_model,img_id)
     user_model = get_user_model()
@@ -127,10 +148,14 @@ function konvas_render(img_id,plugin_model)
 
   on(plugin_model.isready)  do isready
      isready || return 
+
+     try
      update_image(plugin_model,img_id)
 
     plugin_model2 = userdata(load_data(um.list_image[][img_id]),um.list_image[][img_id])
 
+
+    properties_extract(plugin_model,plugin_model2)
     dimention_getter(plugin_model,plugin_model2)
 
     slider_extract(plugin_model,plugin_model2)
@@ -138,7 +163,10 @@ function konvas_render(img_id,plugin_model)
         @info "slider is update"
         slider_extract(plugin_model,plugin_model2)
     end
+    catch e
+    @error "is ready " exception=(e, catch_backtrace())
 
+    end
   end
   
   on(um.list_image) do _

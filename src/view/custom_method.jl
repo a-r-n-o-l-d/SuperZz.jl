@@ -49,6 +49,12 @@ split_image(splitter_num,index,image_str)
 
   let self =this;
   setTimeout(()=>self.tabs_model = tm,10) 
+},
+select_image_id(img_id)
+{
+  let position = this.selected_image.indexOf(img_id); 
+  if ( ~position ) this.selected_image.splice(position, 1);
+  else this.selected_image.push(img_id); 
 }
 """
 

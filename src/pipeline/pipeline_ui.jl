@@ -76,10 +76,10 @@ function ui(plugin_model::PipelineModel)
                     plugin_model.param_image_cache[plugin_model.previous_selected_image*"_"*pipe.name*"_"*process.name] = param
                 end
                 # restore if exist
-                if haskey(plugin_model.param_image_cache,user_model.selected_image[]*"_"*pipe.name*"_"*process.name)
+                if haskey(plugin_model.param_image_cache,user_model.selected_image[][1]*"_"*pipe.name*"_"*process.name)
                   
                   param_seter(plugin_model,
-                  plugin_model.param_image_cache[user_model.selected_image[]*"_"*pipe.name*"_"*process.name],
+                  plugin_model.param_image_cache[user_model.selected_image[][1]*"_"*pipe.name*"_"*process.name],
                   pipe.name,process.name
                   )
                 end
@@ -93,7 +93,7 @@ function ui(plugin_model::PipelineModel)
     
     
     
-        plugin_model.previous_selected_image = user_model.selected_image[]
+        plugin_model.previous_selected_image = user_model.selected_image[][1]
     end
 
     [

@@ -29,14 +29,16 @@ end
 """
 return the zzview selected by the user
 """
-function zzview_select_by_user()::ZzView
+function zzview_select_by_user()::Vector{ZzView}
     user_model = get_user_model()
-    for (k,v) in user_model.list_image[]
-        if k==user_model.selected_image[]
-            return v
-        end
-      end
-    throw(ArgumentError("No image selected"))
+
+    list_zzview = collect(skipmissing([haskey(user_model.list_image[], k) ? user_model.list_image[][k] : missing for k in user_model.selected_image[]] ))
+
+    if length(list_zzview)==0
+      throw(ArgumentError("No image selected"))
+    end
+
+    return list_zzview
 end
 
 """
