@@ -12,7 +12,7 @@ import Genie.Renderer.Html: HTMLString, normal_element, register_normal_element
 using LRUCache
 #using Plots, 
 using StatsBase
-
+using JSON
 
 # TODO : 
 
@@ -91,7 +91,142 @@ function demo_image()
     img_name="HistSampleZZ"
   )
 
-  return dict
+dict["demoRoi"] = ZzRoi(
+  img_id="demoRoi",
+  img_name="demoRoi",
+  rois= Dict(
+    "type" => "FeatureCollection",
+    "features" => [
+      Dict(
+        "type"=> "Feature",
+        "properties"=> Dict(),
+        "geometry"=> Dict(
+          "type"=> "Polygon",
+          "coordinates"=> [
+            [
+              [
+                618,
+                497
+              ],
+              [
+                618,
+                611
+              ],
+              [
+                722,
+                611
+              ],
+              [
+                722,
+                497
+              ],
+              [
+                618,
+                497
+              ]
+            ]
+          ]
+        )
+      ),
+      Dict(
+        "type"=> "Feature",
+        "properties"=> Dict(),
+        "geometry"=> Dict(
+          "type"=> "Polygon",
+          "coordinates"=> [
+            [
+              [
+                268,
+                782
+              ],
+              [
+                268,
+                904
+              ],
+              [
+                494,
+                904
+              ],
+              [
+                494,
+                782
+              ],
+              [
+                268,
+                782
+              ]
+            ]
+          ]
+        )
+      )
+      ,
+      Dict(
+        "type"=> "Feature",
+        "properties"=> Dict(),
+        "geometry"=> Dict(
+          "type"=> "Polygon",
+          "coordinates"=> [
+            [
+              [
+                722,
+                690
+              ],
+              [
+                722,
+                950
+              ],
+              [
+                1242,
+                950
+              ],
+              [
+                1242,
+                690
+              ],
+              [
+                722,
+                690
+              ]
+            ]
+          ]
+        )
+      ),
+      Dict(
+        "type"=> "Feature",
+        "properties"=> Dict(),
+        "geometry"=> Dict(
+          "type"=> "Polygon",
+          "coordinates"=> [
+            [
+              [
+                742,
+                218
+              ],
+              [
+                742,
+                456
+              ],
+              [
+                1230,
+                456
+              ],
+              [
+                1230,
+                218
+              ],
+              [
+                742,
+                218
+              ]
+            ]
+          ]
+        )
+      )
+    ]
+  )
+
+)
+return dict
 end
 
 function demo_image_viewer()

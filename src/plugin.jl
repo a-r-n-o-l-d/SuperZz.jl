@@ -41,6 +41,12 @@ function zzview_select_by_user()::Vector{ZzView}
     return list_zzview
 end
 
+function zzview_select_by_user(type::DataType)
+  filter!(zzview_select_by_user()) do val
+    val isa type
+  end 
+end
+
 """
 Helper funciton to reutrn data from a zzview of given type
 """

@@ -39,6 +39,19 @@ Base.@kwdef mutable struct ZzPlot <: ZzView
     type = "ZzPlot"
   end
   
+"""
+Define a Roi
+"""
+Base.@kwdef mutable struct ZzRoi <: ZzView
+    img_id::String =""
+  
+    rois::Dict{String,Any} = Dict{String,Any}()
+
+    img_name::String = "" # name to print in web ui
+    type = "ZzRoi"
+end
+
+
 function Base.convert(::Type{T},value::Dict{String, Any}) where {T<:ZzView}
     try
       if value["type"] == "ZzImage"

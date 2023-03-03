@@ -1,17 +1,19 @@
 
-
-
 #Add the konva-viewer for iamge
-Genie.Assets.add_fileroute(StippleUI.assets_config, "konva-viewer.js", basedir = pwd())
-register_normal_element("k__viewer",context= @__MODULE__ )
+#Genie.Assets.add_fileroute(StippleUI.assets_config, "konva-viewer.js", basedir = pwd())
+
+Genie.Assets.add_fileroute(StippleUI.assets_config, "leaflet-viewer.js", basedir = pwd())
+
+
+register_normal_element("l__viewer",context= @__MODULE__ )
+
+#register_normal_element("k__viewer",context= @__MODULE__ )
 
 
 @vars KViewerVar begin
     src::R{String} = ""
     rois::R{Dict{String,Any}} = Dict{String,Any}()
     tool_selected::R{Dict{String,Any}} = Dict{String,Any}("tool"=>"") # TODO do no work 
-
-
 
 
     properties::R{Dict{String,Any}} = Dict{String,Any}()
@@ -22,7 +24,10 @@ register_normal_element("k__viewer",context= @__MODULE__ )
     slide_max_v::R{Vector{Int}} = [1]
 
 
+    export_as_roi_or_set_background::R{Bool} = false
 
+
+    type::R{String} = ""
 end
 
 Stipple.@kwredef struct userdata
@@ -108,25 +113,85 @@ function html_slider(plugin_model)
     return mydiv(["{properties}"])
   end
 
+function html_button(plugin_model)
+    on(plugin_model.export_as_roi_or_set_background) do _
+
+
+        if plugin_model.type[]=="ZzRoi"
+            s =  zzview_select_by_user(ZzImage)
+
+            @info plugin_model.export_as_roi_or_set_background 
+            @info s
+            if length(s)>0
+                zzselec = s[1]
+                if(isempty(zzselec.img_visual_path))
+                    src="/image?path="*zzselec.image_path
+                else
+                    src="/image?path="*zzselec.img_visual_path
+                end
+                src *= "&v=" * string(zzselec.image_version)
+                plugin_model.src[] = src
+            end
+        end
+    end
+
+    return q__btn("export_as_roi_or_set_background",@click("export_as_roi_or_set_background=!export_as_roi_or_set_background"))
+    
+end
+
+function zzimage_load(plugin_model,img_id)
+
+    um = get_user_model()
+
+    plugin_model2 = userdata(load_data(um.list_image[][img_id]),um.list_image[][img_id])
+
+
+    properties_extract(plugin_model,plugin_model2)
+    dimention_getter(plugin_model,plugin_model2)
+
+    slider_extract(plugin_model,plugin_model2)
+    on(plugin_model.slide_v) do _
+        @info "slider is update"
+        slider_extract(plugin_model,plugin_model2)
+    end
+end
+
+
 function update_image(plugin_model,img_id)
     user_model = get_user_model()
     try
-        src = "" 
-        if(isempty(user_model.list_image[][img_id].img_visual_path))
-            src="/image?path="*user_model.list_image[][img_id].image_path
-        else
-            src="/image?path="*user_model.list_image[][img_id].img_visual_path
-        end
-        src *= "&v=" * string(user_model.list_image[][img_id].image_version)
+        if plugin_model.rois[] != user_model.list_image[][img_id].rois
+            @info "rois updated" user_model.list_image[][img_id].rois    
+            plugin_model.rois[] = user_model.list_image[][img_id].rois
 
-        #if src != plugin_model.src[]
+            #push!(plugin_model,:rois)
+            #push!(plugin_model)
+        end
+
+        src = "" 
+        if plugin_model.type[] == "ZzImage"
+            if(isempty(user_model.list_image[][img_id].img_visual_path))
+                src="/image?path="*user_model.list_image[][img_id].image_path
+            else
+                src="/image?path="*user_model.list_image[][img_id].img_visual_path
+            end
+            src *= "&v=" * string(user_model.list_image[][img_id].image_version)
+
+            #if src != plugin_model.src[]
             plugin_model.src[] = src
+        else
+            image =  fill(RGB(0,0,0),(2048,2048))
+            filename = START_PATH_FOR_MEMORY*"backgound"*img_id*".png"
+            buf = IOBuffer()
+            PNGFiles.save(buf, image)
+            data = take!(buf)
+            save(File(filename,data))
+
+            plugin_model.src[] = "/image?path="*filename
+        end
         #end
 
-        if plugin_model.rois[] != user_model.list_image[][img_id].rois
-            plugin_model.rois[] = user_model.list_image[][img_id].rois
-                    #push!(plugin_model)
-        end
+
 
 
 
@@ -144,29 +209,27 @@ function konvas_render(img_id,plugin_model)
   um = get_user_model()
 
 
-
-
   on(plugin_model.isready)  do isready
      isready || return 
 
+     plugin_model.type[] =  plugin_model.type[]
      try
-     update_image(plugin_model,img_id)
-
-    plugin_model2 = userdata(load_data(um.list_image[][img_id]),um.list_image[][img_id])
-
-
-    properties_extract(plugin_model,plugin_model2)
-    dimention_getter(plugin_model,plugin_model2)
-
-    slider_extract(plugin_model,plugin_model2)
-    on(plugin_model.slide_v) do _
-        @info "slider is update"
-        slider_extract(plugin_model,plugin_model2)
-    end
+        update_image(plugin_model,img_id)
+        if plugin_model.type[] == "ZzImage"
+            zzimage_load(plugin_model,img_id)
+        end
     catch e
     @error "is ready " exception=(e, catch_backtrace())
 
     end
+
+
+    # on(plugin_model.rois) do _
+    #     um.list_image[][img_id].rois =  plugin_model.rois[]
+    # end
+
+
+
   end
   
   on(um.list_image) do _
@@ -174,14 +237,20 @@ function konvas_render(img_id,plugin_model)
       update_image(plugin_model,img_id)
    end
 
-  mydiv(class= "col",
+  mydiv(class= "fit",
   [
-  k__viewer(
+#   k__viewer(
+#     tool_selected! = "tool_selected",
+#     src! = "src",
+#     var"v-model"="rois",
+#   ),
+  l__viewer(
     tool_selected! = "tool_selected",
     src! = "src",
     var"v-model"="rois",
   ),
-  html_slider(plugin_model)
+  html_slider(plugin_model),
+  html_button(plugin_model)
   #multi_dimentional_view_tool(user_model)
   ])
 end
@@ -191,30 +260,48 @@ end
 
 function deps() :: Vector{String}
     [
-        Genie.Renderer.Html.script(src = "https://cdnjs.cloudflare.com/ajax/libs/konva/8.4.2/konva.js"),
-        Genie.Renderer.Html.script(src = "https://unpkg.com/vue-konva@2.1.7/umd/vue-konva.js"),
+        #Genie.Renderer.Html.script(src = "https://cdnjs.cloudflare.com/ajax/libs/konva/8.4.2/konva.js"),
+        #Genie.Renderer.Html.script(src = "https://unpkg.com/vue-konva@2.1.7/umd/vue-konva.js"),
       
-        Genie.Renderer.Html.script(src = "/stippleui.jl/master/assets/js/konva-viewer.js"),
+
+        Genie.Renderer.Html.script(src = "https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"),
+        Genie.Renderer.Html.script(src = "https://unpkg.com/vue2-leaflet@2.7.1"),
+
+        Genie.Renderer.Html.script(src = "https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"),
+        #Genie.Renderer.Html.script(src = "/stippleui.jl/master/assets/js/konva-viewer.js"),
+        Genie.Renderer.Html.script(src = "/stippleui.jl/master/assets/js/leaflet-viewer.js"),
     ]
   end
 
   Stipple.deps!("zzvew", deps)
 
-route("/plugin/ZzImage/") do 
 
-
-
-    img_id =  Genie.Requests.getpayload(:img_id,"/")
+function routing_page(img_id,type)
     plugin_model = Stipple.init(KViewerVar)
+    plugin_model.type[] = type
 
-    update_image(plugin_model,img_id)
 
-
-    page(plugin_model,class="container",
+    page(plugin_model,class="container",style="height:100%;",
+    prepend= [
+        Stipple.Elements.stylesheet("https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"),
+        Stipple.Elements.stylesheet("https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css")
+    ],
     [
+
+
         konvas_render(img_id,plugin_model)
     ]
     
     
     )
+end
+
+route("/plugin/ZzImage/") do 
+    img_id =  Genie.Requests.getpayload(:img_id,"/")
+    routing_page(img_id,"ZzImage")
+end
+
+route("/plugin/ZzRoi/") do 
+    img_id =  Genie.Requests.getpayload(:img_id,"/")
+    routing_page(img_id,"ZzRoi")
 end
