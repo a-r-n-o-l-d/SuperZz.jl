@@ -28,7 +28,9 @@ Vue.component('l-viewer', {
 
     </l-map>
     Coucou 
+    <template v-if="image != undefined">
     {{ image.src}}
+    </template>
     {{ rois}}
     </div>
     `,
@@ -40,7 +42,7 @@ Vue.component('l-viewer', {
             height : 1000,
             image_height : 1000,
             image_width : 1000,
-            image: new window.Image(),
+            image: null,
             is_loading : true
         }
     },
@@ -70,17 +72,6 @@ Vue.component('l-viewer', {
 
             return  this.image_height / this.image_width;
         },
-
-
-
-        configImg: function() {
-          console.log("configImg,",this.image)
-            return {
-
-              image: this.image,
-            }
-        },
-
     },
     methods:
     {
@@ -95,7 +86,7 @@ Vue.component('l-viewer', {
             console.log("updata")
             console.log(nv)
             //this.image.src=nv;
-            this.image.src=this.src;
+            //this.image.src=this.src;
         }
 
     },
@@ -127,7 +118,12 @@ Vue.component('l-viewer', {
         observer.observe(container);
 
 
-        this.image.onload = () =>{
+
+        this.$nextTick(() => {
+          console.log("Here2")
+          console.log()
+          self.image = document.getElementsByClassName("leaflet-image-layer")[0];
+          this.image.onload = () =>{
 
             console.log("laoded ")
             console.log(this.image)
@@ -150,7 +146,10 @@ Vue.component('l-viewer', {
                 geoLayer.addTo(this.$refs.map.mapObject);
             }
             }
-        this.image.src=this.src;
+        })
+
+
+
 
         this.$refs.map.mapObject.on('pm:drawend', (e) => {
           console.log(e);

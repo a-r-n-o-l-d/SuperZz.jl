@@ -235,35 +235,65 @@ function demo_image_viewer()
 end
 
 
-"""
-Main data exachege with main web ui vue.js app 
-"""
-@vars Model begin
+# """
+# Main data exachege with main web ui vue.js app 
+# """
+
+# @vars Model begin
    
-    leftDrawerOpen::Bool = true
-    rightDrawerOpen::Bool = true
+#     leftDrawerOpen::Bool = true
+#     rightDrawerOpen::Bool = true
 
-    image_viewer::Vector{Vector{String}} = demo_image_viewer() # image show is spliter 
+#     image_viewer::Vector{Vector{String}} = demo_image_viewer() # image show is spliter 
  
-    list_image::Dict{String,ZzView} = demo_image() # list of image loaded in memeory 
+#     list_image::Dict{String,ZzView} = demo_image() # list of image loaded in memeory 
 
-    splitter::Int = 100 # spliter proporitn between two image
-    tabs_model::Vector{String} = ["SampleZZ",""] # what iamge are show in each spliter
-
-
-    filterimage::String = "" # iamge selected by user
-    filterimagetype::String = "" # iamge selected by user
+#     splitter::Int = 100 # spliter proporitn between two image
+#     tabs_model::Vector{String} = ["SampleZZ",""] # what iamge are show in each spliter
 
 
-    selected_image::Vector{String} = Vector{String}() # iamge selected by user
+#     filterimage::String = "" # iamge selected by user
+#     filterimagetype::String = "" # iamge selected by user
 
 
-    debug::String = "" # show string to debug 
+#     selected_image::Vector{String} = Vector{String}() # iamge selected by user
 
-    files_tree::Vector{Dict{String,Any}} = [Dict("label"=>"/","path"=>"/","lazy"=>true)] # see remote file explorer
-    files_selected::String = ""
 
+#     debug::String = "" # show string to debug 
+
+#     files_tree::Vector{Dict{String,Any}} = [Dict("label"=>"/","path"=>"/","lazy"=>true)] # see remote file explorer
+#     files_selected::String = ""
+
+# end
+mutable struct Model <:  Stipple.ReactiveModel
+                  channel__::String
+                  _modes::Stipple.LittleDict{Symbol, Any}
+                  isready::Stipple.R{Bool}
+                  isprocessing::Stipple.R{Bool}
+                  leftDrawerOpen::R{Bool}
+                  rightDrawerOpen::R{Bool}
+                  image_viewer::R{Vector{Vector{String}}}
+                  list_image::R{Dict{String, ZzView}}
+                  splitter::R{Int}
+                  tabs_model::R{Vector{String}}
+                  filterimage::R{String}
+                  filterimagetype::R{String}
+                  selected_image::R{Vector{String}}
+                  debug::R{String}
+                  files_tree::R{Vector{Dict{String, Any}}}
+                  files_selected::R{String}
+  end
+
+Model(; channel__ = Stipple.channelfactory(), _modes = Stipple.LittleDict{Symbol, Any}(), isready = false, isprocessing = false, leftDrawerOpen = R{Bool}(true, PUBLIC, false, false, "REPL[7]:3"), rightDrawerOpen = R{Bool}(true, PUBLIC, false, false), image_viewer = R{Vector{Vector{String}}}(demo_image_viewer(), PUBLIC, false, false, "REPL[7]:6"), list_image = R{Dict{String, ZzView}}(demo_image(), PUBLIC, false, false, "REPL[7]:8"), splitter = R{Int}(100, PUBLIC, false, false), tabs_model = R{Vector{String}}(["SampleZZ", ""], PUBLIC, false, false), filterimage = R{String}("", PUBLIC, false, false), filterimagetype = R{String}("", PUBLIC, false, false), selected_image = R{Vector{String}}(Vector{String}(), PUBLIC, false, false), debug = R{String}("", PUBLIC, false, false), files_tree = R{Vector{Dict{String, Any}}}([Dict("label" => "/", "path" => "/", "lazy" => true)], PUBLIC, false, false, "REPL[7]:23"), files_selected = R{String}("", PUBLIC, false, false)) = begin
+                  Model(channel__, _modes, isready, isprocessing, leftDrawerOpen, rightDrawerOpen, image_viewer, list_image, splitter, tabs_model, filterimage, filterimagetype, selected_image, debug, files_tree, files_selected)
 end
+     
+delete!.(Ref(Stipple.DEPS), filter((x->begin
+                  x isa Type && x <: Model
+              end), keys(Stipple.DEPS)))
+  #= /home/bgirard/.julia/packages/Stipple/qnyBY/src/stipple/reactivity.jl:349 =#
+Stipple.Genie.Router.delete!(Symbol(Stipple.routename(Model)))
+
 
 
 include("remote_file_explorer.jl")
@@ -300,7 +330,7 @@ end
  Create Model for sync data with vue js
 """
 user_model = Stipple.init(Model)
-Stipple.deps!("iframe", deps_superzz)
+Stipple.deps!(Model, deps_superzz)
 
 route("/") do 
   ui(user_model)
@@ -317,14 +347,16 @@ PLUGIN_ENV = Env(user_model)
 Start futnion to lauch this module 
 """
 function start()
-    @genietools
+  @genietools
+  # to force use caceh
+  Genie.Assets.assets_config!([Genie, Stipple, StippleUI, StipplePlotly], host = "https://cdn.statically.io/gh/GenieFramework")
   # using Revise
   # faire fonciotn start and stop 
   Genie.config.websockets_server = true
   #GenieAutoReload.autoreload(joinpath(pwd(),"src"),devonly = false)
 
   # with_logger(zz_logger) do 
-
+  global_logger(zz_logger)
   up(async=isinteractive()) # or `up(open_browser = true)` to automatically open a browser window/tab when launching the app
 
   #end

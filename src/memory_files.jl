@@ -69,16 +69,11 @@ Serve A File throud HTTP
 """
 function serve_file(f::File) :: HTTP.Response
 
-
-    if( f == false)
-        error("not found", Genie.Router.response_mime(), Val(404))
-        return
-    end
     paht = f.path
     fileheader = Genie.Router.file_headers(paht)
     return HTTP.Response(200, fileheader, body = f.data)
 
-  end
+end
 
 """
 check thet a file is in memory 

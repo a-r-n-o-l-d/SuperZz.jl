@@ -10,25 +10,58 @@ register_normal_element("l__viewer",context= @__MODULE__ )
 #register_normal_element("k__viewer",context= @__MODULE__ )
 
 
-@vars KViewerVar begin
-    src::R{String} = ""
-    rois::R{Dict{String,Any}} = Dict{String,Any}()
-    tool_selected::R{Dict{String,Any}} = Dict{String,Any}("tool"=>"") # TODO do no work 
+# @vars KViewerVar begin
+#     src::R{String} = ""
+#     rois::R{Dict{String,Any}} = Dict{String,Any}()
+#     tool_selected::R{Dict{String,Any}} = Dict{String,Any}("tool"=>"") # TODO do no work 
 
 
-    properties::R{Dict{String,Any}} = Dict{String,Any}()
+#     properties::R{Dict{String,Any}} = Dict{String,Any}()
 
-    slide_v::R{Vector{Int}} = [1]
-    slide_step_v::R{Vector{Int}} = [1]
-    slide_min_v::R{Vector{Int}} =  [1]
-    slide_max_v::R{Vector{Int}} = [1]
-
-
-    export_as_roi_or_set_background::R{Bool} = false
+#     slide_v::R{Vector{Int}} = [1]
+#     slide_step_v::R{Vector{Int}} = [1]
+#     slide_min_v::R{Vector{Int}} =  [1]
+#     slide_max_v::R{Vector{Int}} = [1]
 
 
-    type::R{String} = ""
+#     export_as_roi_or_set_background::R{Bool} = false
+
+
+#     type::R{String} = ""
+# end
+
+mutable struct KViewerVar <: Stipple.ReactiveModel
+                    #= /home/bgirard/.julia/packages/Stipple/qnyBY/src/stipple/reactivity.jl:345 =#
+                    channel__::String
+                    _modes::Stipple.LittleDict{Symbol, Any}
+                    isready::Stipple.R{Bool}
+                    isprocessing::Stipple.R{Bool}
+                    src::R{String}
+                    rois::R{Dict{String, Any}}
+                    tool_selected::R{Dict{String, Any}}
+                    properties::R{Dict{String, Any}}
+                    slide_v::R{Vector{Int}}
+                    slide_step_v::R{Vector{Int}}
+                    slide_min_v::R{Vector{Int}}
+                    slide_max_v::R{Vector{Int}}
+                    export_as_roi_or_set_background::R{Bool}
+                    type::R{String}
 end
+
+KViewerVar(; channel__ = Stipple.channelfactory(), _modes = Stipple.LittleDict{Symbol, Any}(), isready = false, isprocessing = false, src = "", rois = Dict{String, Any}(), tool_selected = Dict{String, Any}("tool" => ""), properties = Dict{String, Any}(), slide_v = [1], slide_step_v = [1], slide_min_v = [1], slide_max_v = [1], export_as_roi_or_set_background = false, type = "") = begin
+                    #= util.jl:493 =#
+                    KViewerVar(channel__, _modes, isready, isprocessing, src, rois, tool_selected, properties, slide_v, slide_step_v, slide_min_v, slide_max_v, export_as_roi_or_set_background, type)
+end
+
+delete!.(Ref(Stipple.DEPS), filter((x->begin
+                    x isa Type && x <: KViewerVar
+                end), keys(Stipple.DEPS)))
+
+Stipple.Genie.Router.delete!(Symbol(Stipple.routename(KViewerVar)))
+
+
+
+
 
 Stipple.@kwredef struct userdata
     image::Any = nothing 
@@ -87,6 +120,12 @@ function dimention_getter(plugin_model,plugin_model2)
 end
 
 function slider_extract(plugin_model,plugin_model2)
+
+    @info "slider_extract" plugin_model.slide_v[]
+
+    if isempty(plugin_model.slide_v[])
+        return
+    end
     ima =  Base.view(plugin_model2.image,:,:,plugin_model.slide_v[]...)
 
     add_data_list(plugin_model2.zzimage.img_id,plugin_model2.zzimage.img_name,ima,true)
@@ -159,6 +198,8 @@ end
 
 function update_image(plugin_model,img_id)
     user_model = get_user_model()
+
+    @info "Update image $img_id"
     try
         if plugin_model.rois[] != user_model.list_image[][img_id].rois
             @info "rois updated" user_model.list_image[][img_id].rois    
@@ -177,8 +218,9 @@ function update_image(plugin_model,img_id)
             end
             src *= "&v=" * string(user_model.list_image[][img_id].image_version)
 
-            #if src != plugin_model.src[]
-            plugin_model.src[] = src
+            if src != plugin_model.src[]
+                plugin_model.src[] = src
+            end
         else
             image =  fill(RGB(0,0,0),(2048,2048))
             filename = START_PATH_FOR_MEMORY*"backgound"*img_id*".png"
@@ -188,6 +230,9 @@ function update_image(plugin_model,img_id)
             save(File(filename,data))
 
             plugin_model.src[] = "/image?path="*filename
+            if src != plugin_model.src[]
+                plugin_model.src[] = src
+            end
         end
         #end
 
@@ -212,6 +257,7 @@ function konvas_render(img_id,plugin_model)
   on(plugin_model.isready)  do isready
      isready || return 
 
+     @info "kviewer is ready"
      plugin_model.type[] =  plugin_model.type[]
      try
         update_image(plugin_model,img_id)
@@ -258,7 +304,7 @@ end
 
 
 
-function deps() :: Vector{String}
+function deps_kviewer() :: Vector{String}
     [
         #Genie.Renderer.Html.script(src = "https://cdnjs.cloudflare.com/ajax/libs/konva/8.4.2/konva.js"),
         #Genie.Renderer.Html.script(src = "https://unpkg.com/vue-konva@2.1.7/umd/vue-konva.js"),
@@ -267,14 +313,14 @@ function deps() :: Vector{String}
         Genie.Renderer.Html.script(src = "https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"),
         Genie.Renderer.Html.script(src = "https://unpkg.com/vue2-leaflet@2.7.1"),
 
-        Genie.Renderer.Html.script(src = "https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"),
+        Genie.Renderer.Html.script(src = "https://unpkg.com/@geoman-io/leaflet-geoman-free@2.14.2/dist/leaflet-geoman.min.js"),
         #Genie.Renderer.Html.script(src = "/stippleui.jl/master/assets/js/konva-viewer.js"),
         Genie.Renderer.Html.script(src = "/stippleui.jl/master/assets/js/leaflet-viewer.js"),
     ]
   end
 
-  Stipple.deps!("zzvew", deps)
-
+  
+Stipple.deps!(KViewerVar, deps_kviewer)
 
 function routing_page(img_id,type)
     plugin_model = Stipple.init(KViewerVar)
@@ -284,7 +330,7 @@ function routing_page(img_id,type)
     page(plugin_model,class="container",style="height:100%;",
     prepend= [
         Stipple.Elements.stylesheet("https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"),
-        Stipple.Elements.stylesheet("https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css")
+        Stipple.Elements.stylesheet("https://unpkg.com/@geoman-io/leaflet-geoman-free@2.14.2/dist/leaflet-geoman.css")
     ],
     [
 

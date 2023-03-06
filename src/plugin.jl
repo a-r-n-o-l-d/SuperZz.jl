@@ -76,7 +76,7 @@ function add_data_list(img_id,img_name,image,is_visual=false)
     data = take!(buf)
     save(File(filename,data))
 
-    @info "save $filename with $img_id"
+    @info "save $filename with $img_id" is_visual
 
     if haskey(user_model.list_image[],img_id)
       user_model.list_image[][img_id].image_version+=1

@@ -228,7 +228,7 @@ function image_list_layout(user_model)
 
 #Route to load image on get hhtp request 
 route("/image") do 
-    @info  Genie.Requests.getpayload(:path,"")
+    @info  Genie.Requests.getpayload(:path,"") Genie.Requests.getpayload(:v,"")
   
     path = Genie.Requests.getpayload(:path,"")
     if(is_memory_file(path))
