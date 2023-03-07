@@ -18,15 +18,6 @@ using JSON
 
 # 1)
 
-# Selection ? => RoiSet
-
-# affiche run roi sur une image
-
-# rajotue le type RoiSet 
-
-
-# TODO :  faire UN roi manager avec des ROI SET et un front image
-
 # 
 
 # Plugin de test : 
@@ -330,7 +321,8 @@ end
  Create Model for sync data with vue js
 """
 user_model = Stipple.init(Model)
-Stipple.deps!(Model, deps_superzz)
+
+Stipple.deps!("Model", deps_superzz)
 
 route("/") do 
   ui(user_model)

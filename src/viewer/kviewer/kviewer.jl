@@ -320,7 +320,7 @@ function deps_kviewer() :: Vector{String}
   end
 
   
-Stipple.deps!(KViewerVar, deps_kviewer)
+Stipple.deps!("KViewerVar", deps_kviewer) # this is global for all stipple and i dont know how to make local
 
 function routing_page(img_id,type)
     plugin_model = Stipple.init(KViewerVar)
